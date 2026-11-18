@@ -12,13 +12,19 @@
 
 <p align="center"><a href="../../releases/latest">모든 파일과 체크섬</a> | <a href="https://hanjang-jeju.vercel.app">웹 체험판</a></p>
 
-<p align="center"><a href="https://github.com/hyunolike/hanjang-jeju/blob/main/assets/intro.mp4"><img src="assets/intro-thumbnail.jpg" width="840" alt="한 장 제주 22초 소개 영상 (누르면 재생)"></a><br><sub>누르면 22초 소개 영상이 소리와 함께 재생돼요</sub></p>
+<p align="center"><a href="#소개-영상"><img src="assets/intro-thumbnail.jpg" width="840" alt="한 장 제주 소개 영상 썸네일 (누르면 소개 영상으로 이동)"></a></p>
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-2026-dark.svg"><img src="assets/hero-2026-light.svg" width="840" alt="제주 AI·빅데이터 활용 AI Agent 개발 챌린지 2026 출품작"></picture></p>
 
 <p align="center"><sub>주최</sub><br><picture><source media="(prefers-color-scheme: dark)" srcset="assets/organizer-jtp-dark.svg"><img src="assets/organizer-jtp.png" width="200" alt="주최 제주테크노파크"></picture></p>
 
 제주빅데이터센터 PC에서 내려받은 CSV를 그 PC 안에서 바로 분석하려고 만들었습니다. 자료는 PC 밖으로 나가지 않습니다. 분석 엔진은 이 PC의 `127.0.0.1`에서만 열리고, 프로그램을 끝내면 넣은 자료를 지웁니다(끌 수 있음).
+
+## 소개 영상
+
+<p align="center"><img src="assets/intro.gif" width="840" alt="한 장 제주 22초 소개 영상: CSV 이해, 자동 분석, 질문과 답, 결과 한 장"></p>
+
+<p align="center"><sub>소리가 있는 영상은 <a href="https://github.com/hyunolike/hanjang-jeju/raw/main/assets/intro.mp4">intro.mp4</a>로 내려받아 볼 수 있어요 (22초, 2.8MB)</sub></p>
 
 ## 내려받기
 
