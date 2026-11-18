@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="132" viewBox="0 0 840 132" role="img" aria-labelledby="title desc">
+<title id="title">제주 AI·빅데이터 AI Agent 챌린지</title>
+<desc id="desc">2026 출품작. 센터 PC 안에서 CSV를 분석해 보고서용 결과 한 장을 만드는 로컬 에이전트.</desc>
+<g font-family="&#x27;Pretendard&#x27;, &#x27;Apple SD Gothic Neo&#x27;, &#x27;Malgun Gothic&#x27;, &#x27;Noto Sans KR&#x27;, sans-serif">
+<rect x="0.5" y="0.5" width="839" height="131" rx="20" fill="#F2F4F6"/><rect x="24" y="16" width="96" height="24" rx="8" fill="#E6F4F5"/><text x="72" y="33" font-size="13" font-weight="500" fill="#0E7C86" text-anchor="middle">2026 출품작</text><text x="24" y="72" font-size="24" font-weight="700" fill="#191F28" text-anchor="start">제주 AI·빅데이터 AI Agent 챌린지</text><text x="24" y="104" font-size="15" font-weight="500" fill="#4E5968" text-anchor="start">센터 PC 안에서 CSV를 분석해 보고서용 결과 한 장을 만드는 로컬 에이전트</text><g aria-label="한라산과 귤, 상승하는 분석 막대"><path d="M638 106 674 76 691 58 704 62 720 80 753 106Z" fill="#E6F4F5"/><path d="m674 76 17-18 13 4 16 18-18-9-11 2Z" fill="#0E7C86"/><rect x="760" y="86" width="12" height="20" rx="3" fill="#E6F4F5"/><rect x="780" y="72" width="12" height="34" rx="3" fill="#0E7C86"/><rect x="800" y="54" width="12" height="52" rx="3" fill="#0E7C86"/><circle cx="742" cy="96" r="15" fill="#F59F00"/><path d="M742 81c0-10 9-14 17-10-1 8-8 12-17 10Z" fill="#0E7C86"/></g>
+</g>
+</svg>

@@ -5,14 +5,14 @@
 <p align="center">CSV를 넣으면 인터넷과 외부 AI 없이 정리, 분석, 예측까지 해서<br>보고서에 붙일 결과 한 장을 만드는 PC 프로그램</p>
 
 <p align="center">
-  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/download-windows-dark.svg"><img src="assets/download-windows-light.svg" width="280" alt="Windows용 내려받기"></picture></a>
-  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/download-mac-arm64-dark.svg"><img src="assets/download-mac-arm64-light.svg" width="280" alt="Mac용 내려받기 (Apple 칩)"></picture></a>
-  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/download-mac-x64-dark.svg"><img src="assets/download-mac-x64-light.svg" width="280" alt="Mac용 내려받기 (Intel 칩)"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-windows-dark.svg"><img src="assets/dl-windows-light.svg" width="264" alt="Windows용 내려받기"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-arm64-dark.svg"><img src="assets/dl-mac-arm64-light.svg" width="264" alt="Mac용 내려받기 (Apple 칩)"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-dark.svg"><img src="assets/dl-mac-x64-light.svg" width="264" alt="Mac용 내려받기 (Intel 칩)"></picture></a>
 </p>
 
 <p align="center"><a href="../../releases/latest">모든 파일과 체크섬</a> | <a href="https://hanjang-jeju.vercel.app">웹 체험판</a></p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/banner-challenge-dark.svg"><img src="assets/banner-challenge-light.svg" width="840" alt="제주 AI·빅데이터 AI Agent 챌린지 2026 출품작"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-challenge-dark.svg"><img src="assets/hero-challenge-light.svg" width="840" alt="제주 AI·빅데이터 AI Agent 챌린지 2026 출품작"></picture></p>
 
 <p align="center"><sub>주최</sub><br><picture><source media="(prefers-color-scheme: dark)" srcset="assets/organizer-jtp-dark.svg"><img src="assets/organizer-jtp.png" width="200" alt="주최 제주테크노파크"></picture></p>
 
@@ -73,7 +73,7 @@
 
 Windows와 Mac은 창을 띄우는 껍데기만 다르고, 같은 분석 엔진과 화면을 씁니다. 창이 이 PC의 빈 포트로 엔진을 숨김 실행하고 `127.0.0.1` 주소의 화면을 띄웁니다. 창을 닫으면 작업 폴더를 지우고 엔진도 함께 끕니다.
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/arch-dark.svg"><img src="assets/arch-light.svg" width="880" alt="한 장 제주 시스템 구성: Windows(WPF + WebView2)와 Mac(Photino + WKWebView) 창이 127.0.0.1의 분석 엔진(Python, FastAPI)을 실행하고, 선택 사항인 로컬 AI(Ollama)에는 질문만 보낸다"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/architecture-dark.svg"><img src="assets/architecture-light.svg" width="880" alt="한 장 제주 시스템 구성: Windows(WPF + WebView2)와 Mac(Photino + WKWebView) 창이 127.0.0.1의 분석 엔진(Python, FastAPI)을 실행하고, 선택 사항인 로컬 AI(Ollama)에는 질문만 보낸다"></picture></p>
 
 ## 소스에서 빌드
 
