@@ -69,6 +69,12 @@
 | 결과 한 장 | 조건, 답, 요약, 숫자 근거 표. 인쇄와 PDF |
 | 점검과 지우기 | 엔진과 모델 상태 점검. 끝낼 때 자동 지우기 |
 
+## 구조
+
+Windows와 Mac은 창을 띄우는 껍데기만 다르고, 같은 분석 엔진과 화면을 씁니다. 창이 이 PC의 빈 포트로 엔진을 숨김 실행하고 `127.0.0.1` 주소의 화면을 띄웁니다. 창을 닫으면 작업 폴더를 지우고 엔진도 함께 끕니다.
+
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/arch-dark.svg"><img src="assets/arch-light.svg" width="880" alt="한 장 제주 시스템 구성: Windows(WPF + WebView2)와 Mac(Photino + WKWebView) 창이 127.0.0.1의 분석 엔진(Python, FastAPI)을 실행하고, 선택 사항인 로컬 AI(Ollama)에는 질문만 보낸다"></picture></p>
+
 ## 소스에서 빌드
 
 Python 3.11과 [uv](https://docs.astral.sh/uv/), Node 22와 pnpm, .NET 9가 필요합니다.
