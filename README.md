@@ -12,7 +12,7 @@
 
 <p align="center"><a href="../../releases/latest">모든 파일과 체크섬</a> | <a href="https://hanjang-jeju.vercel.app">웹 체험판</a></p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/challenge-dark.svg"><img src="assets/challenge-light.svg" width="840" alt="제주 AI·빅데이터 AI Agent 챌린지 2026 출품작"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/banner-challenge-dark.svg"><img src="assets/banner-challenge-light.svg" width="840" alt="제주 AI·빅데이터 AI Agent 챌린지 2026 출품작"></picture></p>
 
 <p align="center"><sub>주최</sub><br><picture><source media="(prefers-color-scheme: dark)" srcset="assets/organizer-jtp-dark.svg"><img src="assets/organizer-jtp.png" width="200" alt="주최 제주테크노파크"></picture></p>
 
