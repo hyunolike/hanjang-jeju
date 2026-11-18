@@ -5,21 +5,24 @@
 <p align="center">CSV를 넣으면 인터넷과 외부 AI 없이 정리, 분석, 예측까지 해서<br>보고서에 붙일 결과 한 장을 만드는 PC 프로그램</p>
 
 <p align="center">
-  <a href="../../releases/latest"><b>내려받기</b></a> ·
-  <a href="https://hanjang-jeju.vercel.app">웹 체험판</a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/download-windows-dark.svg"><img src="assets/download-windows-light.svg" width="280" alt="Windows용 내려받기"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/download-mac-arm64-dark.svg"><img src="assets/download-mac-arm64-light.svg" width="280" alt="Mac용 내려받기 (Apple 칩)"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/download-mac-x64-dark.svg"><img src="assets/download-mac-x64-light.svg" width="280" alt="Mac용 내려받기 (Intel 칩)"></picture></a>
 </p>
+
+<p align="center"><a href="../../releases/latest">모든 파일과 체크섬</a> | <a href="https://hanjang-jeju.vercel.app">웹 체험판</a></p>
 
 제주빅데이터센터 PC에서 내려받은 CSV를 그 PC 안에서 바로 분석하려고 만들었습니다. 자료는 PC 밖으로 나가지 않습니다. 분석 엔진은 이 PC의 `127.0.0.1`에서만 열리고, 프로그램을 끝내면 넣은 자료를 지웁니다(끌 수 있음).
 
 ## 내려받기
 
-[최신 Release](../../releases/latest)에서 내 컴퓨터에 맞는 파일을 받습니다.
+위 버튼을 누르면 최신 버전을 바로 받습니다. 내 Mac의 칩은 **Apple 메뉴 → 이 Mac에 관하여**에서 확인합니다.
 
 | 컴퓨터 | 파일 |
 | --- | --- |
-| Windows 10/11 (64비트) | `HanJangJeju-Setup-<버전>.exe` |
-| Mac (Apple 칩, M1 이후) | `HanJangJeju-<버전>-arm64.dmg` |
-| Mac (Intel) | `HanJangJeju-<버전>-x64.dmg` |
+| Windows 10/11 (64비트) | [`HanJangJeju-Setup-windows-x64.exe`](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe) |
+| Mac (Apple 칩, M1 이후) | [`HanJangJeju-mac-arm64.dmg`](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg) |
+| Mac (Intel) | [`HanJangJeju-mac-x64.dmg`](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg) |
 
 이 공개판에는 예시 자료로 **센터 자료 예시(공개 명세서의 열 정의로 만든 가짜 값)** 2종만 들어 있습니다. 내 CSV를 끌어다 놓으면 그 자료를 분석합니다.
 
@@ -27,7 +30,7 @@
 
 ### Windows
 
-1. `HanJangJeju-Setup-<버전>.exe`를 실행합니다. 관리자 권한은 필요 없습니다.
+1. `HanJangJeju-Setup-windows-x64.exe`를 실행합니다. 관리자 권한은 필요 없습니다.
 2. 코드 서명이 없어서 **"Windows의 PC 보호"** 창이 뜹니다. **추가 정보 → 실행**을 누릅니다.
 3. 시작 메뉴에서 **한 장 제주**를 엽니다. 처음 켤 때는 30초에서 1분쯤 걸립니다.
 
