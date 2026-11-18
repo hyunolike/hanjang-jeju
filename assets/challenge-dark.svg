@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="180" viewBox="0 0 840 180" role="img" aria-labelledby="t">
+  <title id="t">제주 AI·빅데이터 AI Agent 챌린지 2026 출품작, 한 장 제주</title>
+  <rect x="0.5" y="0.5" width="839" height="179" rx="20" fill="#191F28" stroke="#3A4250"/>
+  <g clip-path="url(#c)"><clipPath id="c"><rect width="840" height="180" rx="20"/></clipPath>
+    <circle cx="742" cy="54" r="16" fill="#FFB547" opacity="0.95"/>
+    <path d="M520 180 C580 150 620 112 676 92 C700 84 716 82 732 86 C770 96 800 128 840 150 L840 180 Z" fill="#2A3A47"/>
+    <path d="M600 180 C650 158 690 124 728 112 C744 107 756 108 770 114 C796 126 816 146 840 160 L840 180 Z" fill="#3FB8C2" opacity="0.9"/>
+    <g fill="none" stroke="#3FB8C2" stroke-width="2.5" stroke-linecap="round" opacity="0.9">
+      <path d="M470 160 q12 -8 24 0 t24 0 t24 0"/>
+      <path d="M500 172 q12 -8 24 0 t24 0 t24 0 t24 0"/>
+    </g>
+    <circle cx="640" cy="128" r="13" fill="#FF8A1F"/>
+    <path d="M640 115 c4 -8 12 -9 16 -6 c-4 6 -10 8 -16 6z" fill="#3FA34D"/>
+  </g>
+  <g font-family="'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+    <rect x="40" y="34" width="96" height="28" rx="14" fill="#24303C"/>
+    <text x="88" y="53" font-size="14" font-weight="700" fill="#3FB8C2" text-anchor="middle">2026 출품작</text>
+    <text x="40" y="104" font-size="30" font-weight="800" fill="#FFFFFF">제주 AI·빅데이터 AI Agent 챌린지</text>
+    <text x="40" y="140" font-size="17" fill="#AEB8C4">센터 PC 안에서 CSV를 분석해 보고서용 결과 한 장을 만드는 로컬 에이전트</text>
+  </g>
+</svg>
