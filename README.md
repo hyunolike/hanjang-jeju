@@ -12,7 +12,7 @@
 
 <p align="center"><a href="../../releases/latest">모든 파일과 체크섬</a> | <a href="https://hanjang-jeju.vercel.app">웹 체험판</a></p>
 
-<p align="center"><a href="https://daker.ai/public/hackathons/jeju-ai-bigdata-agent-challenge"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/challenge-dark.svg"><img src="assets/challenge-light.svg" width="840" alt="제주 AI·빅데이터 AI Agent 챌린지 2026 출품작"></picture></a></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/challenge-dark.svg"><img src="assets/challenge-light.svg" width="840" alt="제주 AI·빅데이터 AI Agent 챌린지 2026 출품작"></picture></p>
 
 제주빅데이터센터 PC에서 내려받은 CSV를 그 PC 안에서 바로 분석하려고 만들었습니다. 자료는 PC 밖으로 나가지 않습니다. 분석 엔진은 이 PC의 `127.0.0.1`에서만 열리고, 프로그램을 끝내면 넣은 자료를 지웁니다(끌 수 있음).
 
