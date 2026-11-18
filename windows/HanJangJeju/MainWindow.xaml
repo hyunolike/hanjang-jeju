@@ -1,0 +1,27 @@
+<Window x:Class="HanJangJeju.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="한 장 제주" Width="1280" Height="860" MinWidth="900" MinHeight="640"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource Grey100}"
+        FontFamily="{StaticResource UiFont}">
+  <Grid>
+    <!-- 엔진이 켜지는 동안의 안내 화면. 토스처럼 한 문장과 진행 표시만 둔다. -->
+    <Grid x:Name="Splash">
+      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="420">
+        <Image Source="logo.png" Width="72" Height="72" Margin="0,0,0,24" />
+        <TextBlock x:Name="SplashTitle" Text="분석 엔진을 켜고 있어요" FontSize="26" FontWeight="Bold"
+                   Foreground="{StaticResource Grey900}" TextAlignment="Center" />
+        <TextBlock x:Name="SplashSub" Text="처음 켤 때는 30초쯤 걸려요. 인터넷 없이 이 PC 안에서만 동작해요."
+                   FontSize="15" Foreground="{StaticResource Grey600}" TextWrapping="Wrap"
+                   TextAlignment="Center" Margin="0,12,0,28" />
+        <ProgressBar x:Name="SplashProgress" IsIndeterminate="True" Height="6" Foreground="{StaticResource Teal500}"
+                     Background="#E5E8EB" BorderThickness="0" />
+        <Button x:Name="RetryButton" Content="다시 시도" Visibility="Collapsed" Margin="0,28,0,0" Height="52"
+                FontSize="17" FontWeight="SemiBold" Foreground="White" Background="{StaticResource Teal500}"
+                BorderThickness="0" Click="Retry_Click" />
+      </StackPanel>
+    </Grid>
+    <wv2:WebView2 x:Name="Web" Visibility="Collapsed" />
+  </Grid>
+</Window>

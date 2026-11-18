@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>한 장 제주</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #f2f4f6; font-family: -apple-system, "Apple SD Gothic Neo", sans-serif; color: #191f28; }
+  main { height: 100%; display: grid; place-items: center; }
+  .box { width: 420px; text-align: center; }
+  h1 { font-size: 26px; margin: 0 0 12px; letter-spacing: -0.02em; }
+  p { font-size: 15px; color: #6b7684; line-height: 1.6; margin: 0 0 28px; }
+  .bar { height: 6px; border-radius: 3px; background: #e5e8eb; overflow: hidden; }
+  .bar i { display: block; width: 40%; height: 100%; background: #0e7c86; border-radius: 3px; animation: go 1.2s ease-in-out infinite; }
+  @keyframes go { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+  .err h1 { color: #c2332b; }
+</style>
+</head>
+<body>
+<main>
+  <div class="box" id="box">
+    <h1>분석 엔진을 켜고 있어요</h1>
+    <p>처음 켤 때는 30초쯤 걸려요.<br />인터넷 없이 이 컴퓨터 안에서만 동작해요.</p>
+    <div class="bar"><i></i></div>
+  </div>
+</main>
+<script>
+  // 엔진이 응답하면 화면으로 넘어간다. 다른 출처라 응답 내용은 읽지 않고 연결 여부만 본다.
+  const url = "__ENGINE_URL__";
+  const started = Date.now();
+  async function poll() {
+    try {
+      await fetch(url + "api/health", { mode: "no-cors", cache: "no-store" });
+      location.replace(url);
+      return;
+    } catch (e) {}
+    if (Date.now() - started > 120000) {
+      document.getElementById("box").className = "box err";
+      document.getElementById("box").innerHTML =
+        "<h1>분석 엔진을 켜지 못했어요</h1><p>앱을 닫았다가 다시 열어 주세요.<br />기록: ~/Library/Application Support/HanJangJeju/engine.log</p>";
+      return;
+    }
+    setTimeout(poll, 500);
+  }
+  poll();
+</script>
+</body>
+</html>

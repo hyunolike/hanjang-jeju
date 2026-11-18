@@ -1,0 +1,142 @@
+name: release
+
+# 공개 배포판을 Windows(x64), Mac(Apple 칩, Intel)용으로 만들고 실제로 켜지는지 확인한다.
+# v로 시작하는 태그를 올리면 세 설치 파일을 GitHub Release에 붙인다.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  JEJU_PUBLIC: "1"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: 화면 빌드
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+      - name: 엔진 묶기 (PyInstaller)
+        run: |
+          uv sync --frozen
+          uv run pyinstaller packaging/engine.spec --noconfirm --distpath output/dist --workpath output/build
+      - name: 엔진 단독 실행 검사
+        run: |
+          $env:JEJU_WORKSPACE = "$env:RUNNER_TEMP\ws"
+          $p = Start-Process output\dist\jeju-engine\jeju-engine.exe -ArgumentList "--port 8799" -PassThru -WindowStyle Hidden
+          $sw = [Diagnostics.Stopwatch]::StartNew()
+          do { Start-Sleep 1; try { $h = Invoke-RestMethod http://127.0.0.1:8799/api/health } catch { $h = $null } } until ($h -or $sw.Elapsed.TotalSeconds -gt 120)
+          if (-not $h) { throw "엔진이 120초 안에 켜지지 않았어요" }
+          $a = Invoke-RestMethod http://127.0.0.1:8799/api/datasets/center-1-19-dummy/analyze -TimeoutSec 300
+          if (-not $a.forecast) { throw "예측 결과가 없어요" }
+          "예측 방법: $($a.forecast.model)"
+          $page = Invoke-WebRequest http://127.0.0.1:8799/ -UseBasicParsing
+          if ($page.Content -notmatch "한 장 제주") { throw "화면을 내주지 못했어요" }
+          Stop-Process $p.Id
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: Windows 프로그램과 설치 파일
+        run: |
+          dotnet publish windows/HanJangJeju -c Release -o output/app
+          Copy-Item output/dist/jeju-engine output/app/engine -Recurse
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) { choco install innosetup -y --no-progress | Out-Null }
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc installer\HanJangJeju.iss
+      - name: 조용히 설치하고 실행 검사
+        run: |
+          $setup = Get-ChildItem output\installer\*.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
+          $app = "$env:LOCALAPPDATA\Programs\HanJangJeju"
+          if (-not (Test-Path "$app\HanJangJeju.exe")) { throw "프로그램이 설치되지 않았어요" }
+          $p = Start-Process "$app\engine\jeju-engine.exe" -ArgumentList "--port 8798" -PassThru -WindowStyle Hidden
+          $sw = [Diagnostics.Stopwatch]::StartNew()
+          do { Start-Sleep 1; try { $h = Invoke-RestMethod http://127.0.0.1:8798/api/health } catch { $h = $null } } until ($h -or $sw.Elapsed.TotalSeconds -gt 120)
+          if (-not $h) { throw "설치된 엔진이 켜지지 않았어요" }
+          Stop-Process $p.Id
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: output/installer/*.exe
+          retention-days: 14
+
+  mac:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-latest, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: 앱과 dmg 만들기
+        run: |
+          uv sync --frozen
+          (cd web && pnpm install --frozen-lockfile && pnpm build)
+          mac/build-app.sh
+      - name: 앱 안의 엔진 실행 검사
+        run: |
+          ENGINE=output/mac/HanJangJeju.app/Contents/Resources/engine/jeju-engine
+          JEJU_WORKSPACE=$RUNNER_TEMP/ws $ENGINE --port 8797 &
+          for i in $(seq 1 120); do curl -sf http://127.0.0.1:8797/api/health && break; sleep 1; done
+          curl -sf -m 300 http://127.0.0.1:8797/api/datasets/center-1-19-dummy/analyze | python3 -c "import json,sys;d=json.load(sys.stdin);assert d['forecast'];print('예측 방법',d['forecast']['model'])"
+          curl -sf http://127.0.0.1:8797/ | grep -q "한 장 제주"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ matrix.runner }}
+          path: output/mac/*.dmg
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, mac]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: 체크섬과 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist && sha256sum * > SHA256SUMS.txt && ls -la && cd ..
+          gh release create "$GITHUB_REF_NAME" dist/* --title "한 장 제주 $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
