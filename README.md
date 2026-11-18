@@ -12,6 +12,8 @@
 
 <p align="center"><a href="../../releases/latest">모든 파일과 체크섬</a> | <a href="https://hanjang-jeju.vercel.app">웹 체험판</a></p>
 
+<p align="center"><a href="https://github.com/hyunolike/hanjang-jeju/blob/main/assets/intro.mp4"><img src="assets/intro-thumbnail.jpg" width="840" alt="한 장 제주 22초 소개 영상 (누르면 재생)"></a><br><sub>누르면 22초 소개 영상이 소리와 함께 재생돼요</sub></p>
+
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-2026-dark.svg"><img src="assets/hero-2026-light.svg" width="840" alt="제주 AI·빅데이터 활용 AI Agent 개발 챌린지 2026 출품작"></picture></p>
 
 <p align="center"><sub>주최</sub><br><picture><source media="(prefers-color-scheme: dark)" srcset="assets/organizer-jtp-dark.svg"><img src="assets/organizer-jtp.png" width="200" alt="주최 제주테크노파크"></picture></p>
