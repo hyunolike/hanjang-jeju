@@ -12,7 +12,7 @@
 
 <p align="center"><a href="../../releases/latest">모든 파일과 체크섬</a> | <a href="https://hanjang-jeju.vercel.app">웹 체험판</a></p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-challenge-dark.svg"><img src="assets/hero-challenge-light.svg" width="840" alt="제주 AI·빅데이터 AI Agent 챌린지 2026 출품작"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-2026-dark.svg"><img src="assets/hero-2026-light.svg" width="840" alt="제주 AI·빅데이터 활용 AI Agent 개발 챌린지 2026 출품작"></picture></p>
 
 <p align="center"><sub>주최</sub><br><picture><source media="(prefers-color-scheme: dark)" srcset="assets/organizer-jtp-dark.svg"><img src="assets/organizer-jtp.png" width="200" alt="주최 제주테크노파크"></picture></p>
 
@@ -73,7 +73,7 @@
 
 Windows와 Mac은 창을 띄우는 껍데기만 다르고, 같은 분석 엔진과 화면을 씁니다. 창이 이 PC의 빈 포트로 엔진을 숨김 실행하고 `127.0.0.1` 주소의 화면을 띄웁니다. 창을 닫으면 작업 폴더를 지우고 엔진도 함께 끕니다.
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/architecture-dark.svg"><img src="assets/architecture-light.svg" width="880" alt="한 장 제주 시스템 구성: Windows(WPF + WebView2)와 Mac(Photino + WKWebView) 창이 127.0.0.1의 분석 엔진(Python, FastAPI)을 실행하고, 선택 사항인 로컬 AI(Ollama)에는 질문만 보낸다"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/system-architecture-dark.svg"><img src="assets/system-architecture-light.svg" width="880" alt="한 장 제주 시스템 구성: Windows(WPF + WebView2)와 Mac(Photino + WKWebView) 창이 127.0.0.1의 분석 엔진(Python, FastAPI)을 실행하고, 선택 사항인 로컬 AI(Ollama)에는 질문만 보낸다"></picture></p>
 
 ## 소스에서 빌드
 
@@ -90,6 +90,6 @@ Windows 설치 파일은 `.github/workflows/release.yml`의 순서(PyInstaller �
 
 ## 알아 둘 것
 
-- 이 저장소는 제주 AI·빅데이터 AI Agent 챌린지 출품작의 공개 배포판입니다. 대회용 원본 자료(제주데이터허브 원본 CSV)는 재배포할 수 없어 넣지 않았습니다.
+- 이 저장소는 제주 AI·빅데이터 활용 AI Agent 개발 챌린지 출품작의 공개 배포판입니다. 대회용 원본 자료(제주데이터허브 원본 CSV)는 재배포할 수 없어 넣지 않았습니다.
 - 예시 자료는 실제 센터 자료가 아닙니다.
 - 사용한 오픈소스: pandas, statsforecast, FastAPI, uvicorn, PyInstaller, React, Vite, Tailwind CSS, Microsoft WebView2, Photino.NET, Inno Setup. 각 라이선스를 따릅니다.
