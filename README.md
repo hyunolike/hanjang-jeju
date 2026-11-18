@@ -10,7 +10,7 @@
   <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-dark.svg"><img src="assets/dl-mac-x64-light.svg" width="264" alt="Mac용 내려받기 (Intel 칩)"></picture></a>
 </p>
 
-<p align="center"><a href="../../releases/latest">모든 파일과 체크섬</a> | <a href="https://hanjang-jeju.vercel.app">웹 체험판</a></p>
+<p align="center"><a href="../../releases/latest">모든 파일과 체크섬</a> | <a href="https://hanjang-jeju.hyunolike.dev">웹 체험판</a></p>
 
 <p align="center"><a href="#소개-영상"><img src="assets/intro-thumbnail.jpg" width="840" alt="한 장 제주 소개 영상 썸네일 (누르면 소개 영상으로 이동)"></a></p>
 
