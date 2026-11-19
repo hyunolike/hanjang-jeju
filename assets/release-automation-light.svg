@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1040" viewBox="0 0 1120 1040" role="img" aria-labelledby="title desc">
+<title id="title">소스 갱신과 설치판 자동 출시</title><desc id="desc">CircleCI가 개발 원본 main의 허용 파일을 공개 main에 반영한다. 버전이 같으면 기존 설치판을 유지한다. 기존 최대 안정판보다 높은 새 버전이면 공개 커밋에 태그하고 공개 Actions가 Windows x64와 Mac arm64, x64를 빌드하고 실행 검사한다. 세 빌드가 모두 성공하면 체크섬과 설치판을 draft에 업로드한 뒤 Release로 공개한다. 웹 배포는 별도다.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#526676" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif">
+<rect x="0" y="0" width="1120" height="1040" rx="0" fill="#F7F9FC"/>
+<rect x="32" y="28" width="124" height="32" rx="10" fill="#E5F4F3"/>
+<text x="94.0" y="51" font-size="18" font-weight="700" fill="#0E7C86" text-anchor="middle" data-max-width="112">배포 자동화</text>
+<text x="32" y="108" font-size="34" font-weight="750" fill="#172C3B" text-anchor="start" data-max-width="1056">버전을 올린 PR이 설치판 출시로 이어져요</text>
+<text x="32" y="144" font-size="20" font-weight="500" fill="#526676" text-anchor="start" data-max-width="1056">소스 갱신과 설치판 출시는 서로 다른 단계입니다.</text>
+<rect x="272" y="180" width="576" height="100" rx="20" fill="#E5F4F3"/>
+<g transform="translate(296 205)" fill="none" stroke="#0E7C86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="3"/><circle cx="6" cy="24" r="3"/><circle cx="23" cy="5" r="3"/><path d="M6 8v13M23 8c0 9-17 3-17 12"/></g>
+<text x="344" y="219" font-size="24" font-weight="700" fill="#0E7C86" text-anchor="start" data-max-width="480">개발 원본 main → 공개 main</text>
+<text x="344" y="254" font-size="20" font-weight="500" fill="#172C3B" text-anchor="start" data-max-width="480">CircleCI가 허용 파일만 검사해 반영</text>
+<path d="M560 288V320" fill="none" stroke="#526676" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="336" y="332" width="448" height="88" rx="20" fill="#FFF3E0"/>
+<text x="560" y="367" font-size="24" font-weight="700" fill="#A96912" text-anchor="middle" data-max-width="416">기존 태그보다 높은 새 버전인가요?</text>
+<text x="560" y="399" font-size="20" font-weight="500" fill="#172C3B" text-anchor="middle" data-max-width="416">기준: pyproject.toml의 project.version</text>
+<path d="M324 376H184V476" fill="none" stroke="#526676" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M796 376H892V476" fill="none" stroke="#526676" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="132" y="428" width="104" height="32" rx="10" fill="#EDF2F6"/>
+<text x="184.0" y="451" font-size="18" font-weight="700" fill="#526676" text-anchor="middle" data-max-width="92">같은 버전</text>
+<rect x="840" y="428" width="104" height="32" rx="10" fill="#FFF3E0"/>
+<text x="892.0" y="451" font-size="18" font-weight="700" fill="#A96912" text-anchor="middle" data-max-width="92">새 버전</text>
+<rect x="32" y="488" width="304" height="164" rx="20" fill="#FFFFFF" stroke="#D6E1E8" stroke-width="1.5"/>
+<text x="56" y="530" font-size="26" font-weight="750" fill="#172C3B" text-anchor="start" data-max-width="256">소스만 갱신</text>
+<text x="56" y="572" font-size="20" font-weight="500" fill="#526676" text-anchor="start" data-max-width="256">기존 설치판은 그대로</text>
+<text x="56" y="602" font-size="20" font-weight="500" fill="#526676" text-anchor="start" data-max-width="256">README 수정도 이 경로</text>
+<rect x="408" y="488" width="680" height="88" rx="20" fill="#FFFFFF" stroke="#D6E1E8" stroke-width="1.5"/>
+<text x="432" y="524" font-size="24" font-weight="700" fill="#172C3B" text-anchor="start" data-max-width="632">vX.Y.Z 태그 생성</text>
+<text x="432" y="555" font-size="20" font-weight="500" fill="#172C3B" text-anchor="start" data-max-width="632">반영된 공개 커밋에 태그를 붙입니다</text>
+<path d="M748 584V608" fill="none" stroke="#526676" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="408" y="620" width="680" height="144" rx="20" fill="#FFFFFF" stroke="#D6E1E8" stroke-width="1.5"/>
+<text x="432" y="658" font-size="24" font-weight="700" fill="#172C3B" text-anchor="start" data-max-width="632">공개 GitHub Actions</text>
+<rect x="432" y="678" width="192" height="32" rx="10" fill="#E5F4F3"/>
+<text x="528.0" y="701" font-size="18" font-weight="700" fill="#0E7C86" text-anchor="middle" data-max-width="180">Windows x64</text>
+<rect x="648" y="678" width="192" height="32" rx="10" fill="#E5F4F3"/>
+<text x="744.0" y="701" font-size="18" font-weight="700" fill="#0E7C86" text-anchor="middle" data-max-width="180">Mac Apple 칩</text>
+<rect x="864" y="678" width="192" height="32" rx="10" fill="#E5F4F3"/>
+<text x="960.0" y="701" font-size="18" font-weight="700" fill="#0E7C86" text-anchor="middle" data-max-width="180">Mac Intel</text>
+<text x="432" y="742" font-size="20" font-weight="500" fill="#172C3B" text-anchor="start" data-max-width="632">각 설치판을 빌드하고 엔진 실행을 검사합니다</text>
+<path d="M748 772V796" fill="none" stroke="#526676" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="408" y="808" width="680" height="112" rx="20" fill="#E5F4F3"/>
+<g transform="translate(432 837)" fill="none" stroke="#0E7C86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 2 12 6v14l-12 6L2 22V8l12-6Zm-12 6 12 6 12-6M14 14v14M8 5l12 6"/></g>
+<text x="480" y="848" font-size="24" font-weight="750" fill="#0E7C86" text-anchor="start" data-max-width="580">모두 성공하면 Release 공개</text>
+<text x="432" y="891" font-size="20" font-weight="500" fill="#172C3B" text-anchor="start" data-max-width="632">설치판 3개 + 체크섬 → draft 업로드 → 공개</text>
+<rect x="32" y="680" width="304" height="240" rx="20" fill="#EDF2F6"/>
+<g transform="translate(56 708)" fill="none" stroke="#0E7C86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v17m-7-7 7 7 7-7M3 22v5h22v-5"/></g>
+<text x="56" y="774" font-size="24" font-weight="700" fill="#172C3B" text-anchor="start" data-max-width="256">받는 주소는 그대로</text>
+<text x="56" y="816" font-size="20" font-weight="500" fill="#526676" text-anchor="start" data-max-width="256">다운로드 버튼은</text>
+<text x="56" y="846" font-size="20" font-weight="500" fill="#526676" text-anchor="start" data-max-width="256">최신 공개 설치판을</text>
+<text x="56" y="876" font-size="20" font-weight="500" fill="#526676" text-anchor="start" data-max-width="256">계속 가리킵니다.</text>
+<rect x="32" y="948" width="1056" height="60" rx="20" fill="#EDF2F6"/>
+<text x="56" y="985" font-size="20" font-weight="500" fill="#172C3B" text-anchor="start" data-max-width="1008">실패한 단계는 재실행으로 복구 · main 수동 빌드는 출시 없음 · 웹 배포는 별도</text>
+</g></svg>

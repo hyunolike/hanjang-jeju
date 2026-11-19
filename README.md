@@ -110,6 +110,8 @@ Windows는 WPF와 WebView2, Mac은 Photino와 WKWebView로 창을 엽니다. 두
 
 이 저장소는 개발 원본에서 허용한 파일을 자동으로 반영한 공개 배포판입니다. 소스가 갱신돼도 버전이 같으면 설치판은 바뀌지 않습니다. 실제 배포 내용은 [Release](https://github.com/hyunolike/hanjang-jeju/releases/latest)를 기준으로 확인하세요.
 
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/release-automation-dark.svg"><img src="assets/release-automation-light.svg" width="1120" alt="소스 갱신과 설치판 출시: 같은 버전은 소스만 반영하고, 더 높은 새 안정판 버전은 공개 태그와 세 설치판 빌드 및 실행 검사를 거쳐 Release로 공개합니다. 내려받기 버튼은 최신 공개 설치판을 가리킵니다."></picture></p>
+
 <details>
 <summary>소스에서 실행하고 빌드하기</summary>
 
