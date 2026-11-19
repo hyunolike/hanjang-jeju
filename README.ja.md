@@ -64,9 +64,12 @@ Web 版には月次分析に適した日付と、合計できる数値が必要�
 | 対応環境 | ダウンロード |
 | --- | --- |
 | Windows 10/11、64 ビット | [Windows インストーラー（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe) |
+| Windows 10/11、64 ビット、**ローカル AI 付き**（約 1.2 GB） | [AI 付き Windows インストーラー（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64-AI.exe) |
 | Windows AI パック（任意、約 1.1 GB） | [AI パック インストーラー（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) |
 | Apple シリコン搭載 Mac（M1 以降） | [Apple シリコン版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg) |
+| Apple シリコン搭載 Mac、**ローカル AI 付き**（約 1.3 GB） | [AI 付き Apple シリコン版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64-AI.dmg) |
 | Intel 搭載 Mac | [Intel 版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg) |
+| Intel 搭載 Mac、**ローカル AI 付き**（約 1.3 GB） | [AI 付き Intel 版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64-AI.dmg) |
 
 [すべての配布ファイルと SHA256 チェックサム](https://github.com/hyunolike/hanjang-jeju/releases/latest)
 
@@ -76,11 +79,11 @@ Web 版には月次分析に適した日付と、合計できる数値が必要�
 
 ### 任意：デスクトップで質問機能を使う
 
-分析項目を手動で選ぶ場合、AI モデルは不要です。Windows で質問から項目を選びたい場合は、アプリを閉じて [AI パック インストーラー](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe)を実行し、**한 장 제주** を開き直します。ダウンロード後のインストールには管理者権限もインターネットも不要なので、USB メモリでオフラインの PC に持ち込めます。モデルの読み込みが終わると質問欄に **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)** と表示されます。初回の読み込みには 1 分ほどかかる場合があります。
+分析項目を手動で選ぶ場合、AI モデルは不要です。質問機能をいちばん簡単に使うには、上の**ローカル AI 付き**インストーラーを使います。アプリとモデルが一緒にインストールされ、インターネットなしで動作します。すでに Windows の標準版をインストールしている場合は、アプリを閉じて [AI パック インストーラー](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe)を実行し、**한 장 제주** を開き直します。ダウンロード後のインストールには管理者権限もインターネットも不要なので、USB メモリでオフラインの PC に持ち込めます。モデルの読み込みが終わると質問欄に **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)** と表示されます。初回の読み込みには 1 分ほどかかる場合があります。
 
 AI パックには、バージョンを固定した llama.cpp の CPU 版サーバーと Qwen3 1.7B モデル（Q4_K_M）が入っています。アプリの起動時に `127.0.0.1` 上だけで、実行ごとに新しいキーを使って起動し、アプリを閉じると一緒に停止します。モデルに送るのは質問、列メタデータ、限定的なカテゴリ値の例だけで、CSV の生データ行は送りません。
 
-Mac の場合、またはすでに [Ollama](https://ollama.com/download) を使っている場合は、Ollama をインストールして起動し、次を実行します。
+Mac の標準版をインストールした場合、またはすでに [Ollama](https://ollama.com/download) を使っている場合は、Ollama をインストールして起動し、次を実行します。
 
 ```bash
 ollama pull qwen3:1.7b

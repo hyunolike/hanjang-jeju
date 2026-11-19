@@ -64,9 +64,12 @@ https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 | 컴퓨터 | 내려받기 |
 | --- | --- |
 | Windows 10/11, 64비트 | [Windows 설치 파일 (.exe)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe) |
+| Windows 10/11, 64비트, **로컬 AI 포함** (약 1.2GB) | [AI 포함 Windows 설치 파일 (.exe)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64-AI.exe) |
 | Windows AI 팩 (선택, 약 1.1GB) | [AI 팩 설치 파일 (.exe)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) |
 | Mac, Apple 칩(M1 이후) | [Apple 칩용 (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg) |
+| Mac, Apple 칩, **로컬 AI 포함** (약 1.3GB) | [AI 포함 Apple 칩용 (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64-AI.dmg) |
 | Mac, Intel 칩 | [Intel용 (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg) |
+| Mac, Intel 칩, **로컬 AI 포함** (약 1.3GB) | [AI 포함 Intel용 (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64-AI.dmg) |
 
 [모든 설치 파일과 SHA256 체크섬 보기](https://github.com/hyunolike/hanjang-jeju/releases/latest)
 
@@ -76,11 +79,11 @@ https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 
 ### 선택 사항: PC에서 질문 기능 켜기
 
-직접 항목을 고르는 분석에는 AI 모델이 필요하지 않습니다. Windows에서 질문으로 분석할 항목을 고르려면 프로그램을 닫고 [AI 팩 설치 파일](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe)을 실행한 뒤 **한 장 제주**를 다시 엽니다. 받은 뒤에는 관리자 권한과 인터넷이 필요 없어 USB로 옮겨 설치할 수 있습니다. 모델을 다 불러오면 질문 칸에 **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)**이 보입니다. 처음 불러올 때는 1분쯤 걸릴 수 있습니다.
+직접 항목을 고르는 분석에는 AI 모델이 필요하지 않습니다. 질문 기능을 쓰는 가장 쉬운 방법은 위의 **로컬 AI 포함** 설치 파일을 받는 것입니다. 앱과 모델이 함께 설치되고 인터넷 없이 동작합니다. 이미 Windows 기본 설치 파일로 설치했다면 프로그램을 닫고 [AI 팩 설치 파일](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe)을 실행한 뒤 **한 장 제주**를 다시 엽니다. 받은 뒤에는 관리자 권한과 인터넷이 필요 없어 USB로 옮겨 설치할 수 있습니다. 모델을 다 불러오면 질문 칸에 **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)**이 보입니다. 처음 불러올 때는 1분쯤 걸릴 수 있습니다.
 
 AI 팩에는 버전을 고정한 llama.cpp CPU용 서버와 Qwen3 1.7B 모델(Q4_K_M)이 들어 있습니다. 프로그램이 켜질 때 `127.0.0.1`에서만, 실행마다 새로 만든 열쇠로 실행하고 창을 닫으면 함께 끕니다. 모델에는 질문, 열 정의와 제한된 분류 값 예시만 보내고 CSV 원본 행은 보내지 않습니다.
 
-Mac이거나 이미 [Ollama](https://ollama.com/download)를 쓰고 있다면 Ollama를 설치하고 실행한 뒤 터미널 또는 Windows PowerShell에서 모델을 받습니다.
+Mac 기본 설치 파일로 설치했거나 이미 [Ollama](https://ollama.com/download)를 쓰고 있다면 Ollama를 설치하고 실행한 뒤 터미널 또는 Windows PowerShell에서 모델을 받습니다.
 
 ```bash
 ollama pull qwen3:1.7b

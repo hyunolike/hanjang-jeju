@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 세 설치판과 Windows AI 팩, 체크섬을 draft에 모두 올린 뒤 공개한다. published Release는 수정하지 않는다.
+# 미포함판 셋, AI 포함판 셋, Windows AI 팩과 체크섬을 draft에 모두 올린 뒤 공개한다. published Release는 수정하지 않는다.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 DIST="${1:-dist}"
@@ -15,11 +15,12 @@ if [ -n "$state" ]; then
   if [ "$draft" = false ]; then echo "release skip: $TAG is already published"; exit 0; fi
 fi
 
-FILES=(HanJangJeju-Setup-windows-x64.exe HanJangJeju-mac-arm64.dmg HanJangJeju-mac-x64.dmg HanJangJeju-AI-Pack-windows-x64.exe SHA256SUMS.txt)
+FILES=(HanJangJeju-Setup-windows-x64.exe HanJangJeju-mac-arm64.dmg HanJangJeju-mac-x64.dmg HanJangJeju-AI-Pack-windows-x64.exe
+       HanJangJeju-Setup-windows-x64-AI.exe HanJangJeju-mac-arm64-AI.dmg HanJangJeju-mac-x64-AI.dmg SHA256SUMS.txt)
 for file in "${FILES[@]}"; do
   [ -s "$DIST/$file" ] || { echo "설치판 파일이 없어요: $file" >&2; exit 1; }
 done
-python3 - "$DIST" "${FILES[@]:0:4}" <<'PY'
+python3 - "$DIST" "${FILES[@]:0:7}" <<'PY'
 import hashlib
 from pathlib import Path
 import re
@@ -34,7 +35,7 @@ for line in lines:
         raise SystemExit("invalid checksum manifest")
     checksums[match[2]] = match[1]
 if set(checksums) != expected:
-    raise SystemExit("checksum manifest must cover exactly four installers")
+    raise SystemExit("checksum manifest must cover exactly seven installers")
 for name, digest in checksums.items():
     with (base / name).open("rb") as file:
         if hashlib.file_digest(file, "sha256").hexdigest() != digest:

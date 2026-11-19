@@ -8,7 +8,8 @@
     models/*.gguf            모델
     licenses/                llama.cpp(MIT), Qwen3(Apache-2.0) 라이선스
 
-찾는 순서: 환경 변수 JEJU_AI_PACK(값이 off면 쓰지 않음) → 운영체제별 기본 위치.
+찾는 순서: 환경 변수 JEJU_AI_PACK(값이 off면 쓰지 않음) → 앱 안의 팩(AI 포함판, 엔진 실행 파일 기준 ../ai-pack)
+→ 따로 설치한 팩(운영체제별 기본 위치). 셋 다 없으면 llm이 Ollama를 본다.
 서버는 127.0.0.1의 빈 포트에만 열고, 실행마다 새로 만든 API 키(환경 변수로 전달)가 있어야 응답한다.
 Windows에서는 Job Object에 묶어 엔진이 어떻게 끝나든 서버가 남지 않게 한다.
 """
@@ -49,6 +50,7 @@ class Pack:
     model: Path
     server: Path
     llama_cpp: str
+    bundled: bool = False
 
 
 @dataclass
@@ -63,6 +65,31 @@ class Server:
 _lock = threading.Lock()
 _server: Server | None = None
 _error: str | None = None
+
+
+def bundled_location() -> Path | None:
+    """AI 포함판의 팩 위치. 묶은 엔진(PyInstaller)일 때만 있다.
+
+    Windows: {app}\\engine\\jeju-engine.exe → {app}\\ai-pack
+    Mac:     HanJangJeju.app/Contents/Resources/engine/jeju-engine → Contents/Resources/ai-pack
+    """
+    if not getattr(sys, "frozen", False):
+        return None
+    return Path(sys.executable).resolve().parent.parent / "ai-pack"
+
+
+def _is_bundled(root: Path) -> bool:
+    location = bundled_location()
+    return location is not None and root.resolve() == location.resolve()
+
+
+def install_hint() -> str:
+    """AI가 없을 때 이 운영체제에서 할 수 있는 일(B04)."""
+    if sys.platform == "win32":
+        return "AI 포함판(HanJangJeju-Setup-windows-x64-AI.exe)을 설치하거나 AI 팩(HanJangJeju-AI-Pack-windows-x64.exe)을 더하면 인터넷 없이 질문으로 분석할 수 있어요."
+    if sys.platform == "darwin":
+        return "AI 포함판(HanJangJeju-mac-arm64-AI.dmg, Intel은 mac-x64-AI.dmg)을 설치하거나 Ollama에서 qwen3:1.7b를 받으면 질문으로 분석할 수 있어요."
+    return "AI 팩 폴더를 JEJU_AI_PACK으로 지정하거나 Ollama에서 qwen3:1.7b를 받으면 질문으로 분석할 수 있어요."
 
 
 def default_locations() -> list[Path]:
@@ -110,7 +137,8 @@ def load(root: Path) -> Pack:
         raise PackError("AI 팩의 서버 파일이 없어요. AI 팩을 다시 설치해 주세요.")
     if not model_ok:
         raise PackError("AI 팩의 모델 파일이 없거나 손상됐어요. AI 팩을 다시 설치해 주세요.")
-    return Pack(root=root, name=str(meta.get("name") or model.stem), model=model, server=server, llama_cpp=str(meta.get("llama_cpp", "")))
+    return Pack(root=root, name=str(meta.get("name") or model.stem), model=model, server=server,
+                llama_cpp=str(meta.get("llama_cpp", "")), bundled=_is_bundled(root))
 
 
 def find() -> Pack | None:
@@ -124,7 +152,8 @@ def find() -> Pack | None:
             # 지정한 경로를 잘못 적었으면 조용히 넘어가지 않는다
             raise PackError(f"JEJU_AI_PACK으로 지정한 곳에 AI 팩이 없어요: {root}")
         return load(root)
-    for root in default_locations():
+    bundled = bundled_location()
+    for root in ([bundled] if bundled else []) + default_locations():
         if (root / MANIFEST).exists():
             return load(root)
     return None

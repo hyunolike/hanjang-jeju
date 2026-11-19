@@ -86,7 +86,7 @@ export type SelfCheck = {
   startup_cleared: number
   auto_delete: boolean
 }
-export type ModelStatus = { available: boolean; ready: boolean; model: string; backend?: "pack" | "ollama"; loading?: boolean; pack_error?: boolean; reason?: string }
+export type ModelStatus = { available: boolean; ready: boolean; model: string; backend?: "pack" | "ollama"; loading?: boolean; pack_error?: boolean; install_hint?: string; reason?: string }
 export type AnalyzeOptions = { value?: string; category?: string | null; intent?: Intent; filters?: Plan["filters"]; period_n?: number; horizon?: number; agent_digest?: string; run_forecast?: boolean }
 
 export type JoinResult = {

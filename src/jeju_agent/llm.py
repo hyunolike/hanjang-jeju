@@ -72,6 +72,8 @@ def status(model: str = DEFAULT_MODEL) -> dict:
         # 서버가 살아 있으면 모델을 불러오는 중이다. 화면은 "없음"이 아니라 "준비 중"으로 보여 준다(M07).
         return out if ready else {**out, "reason": reason, "loading": server.process.poll() is None}
     out = _ollama_status(model)
+    if not out["available"]:
+        out["install_hint"] = aipack.install_hint()
     if not out["available"] and aipack.error():
         out["reason"] = aipack.error()  # 팩이 있는데 잘못된 경우가 Ollama 안내보다 중요하다
         out["pack_error"] = True
@@ -82,10 +84,10 @@ def _ollama_status(model: str) -> dict:
     try:
         tags = _request("/api/tags", timeout=2)
     except ModelUnavailable as err:
-        return {"available": False, "model": model, "backend": "ollama", "reason": f"{err} AI 팩을 설치하면 바로 쓸 수 있어요."}
+        return {"available": False, "model": model, "backend": "ollama", "reason": str(err)}
     names = {m.get("name") for m in tags.get("models", [])}
     if model not in names:
-        return {"available": False, "model": model, "backend": "ollama", "reason": f"모델 {model}이 설치되어 있지 않아요. 'ollama pull {model}'로 받거나 AI 팩을 설치해 주세요."}
+        return {"available": False, "model": model, "backend": "ollama", "reason": f"모델 {model}이 설치되어 있지 않아요. 'ollama pull {model}'로 받아 주세요."}
     return {"available": True, "model": model, "backend": "ollama"}
 
 

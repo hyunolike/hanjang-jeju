@@ -64,9 +64,12 @@ These links point to the latest published installers. On a Mac, check your chip 
 | Platform | Download |
 | --- | --- |
 | Windows 10/11, 64-bit | [Windows installer (.exe)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe) |
+| Windows 10/11, 64-bit, **with local AI** (about 1.2 GB) | [Windows installer with AI (.exe)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64-AI.exe) |
 | Windows AI pack (optional, about 1.1 GB) | [AI pack installer (.exe)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) |
 | Mac with Apple silicon (M1 or later) | [Apple silicon (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg) |
+| Mac with Apple silicon, **with local AI** (about 1.3 GB) | [Apple silicon with AI (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64-AI.dmg) |
 | Mac with an Intel chip | [Intel (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg) |
+| Mac with an Intel chip, **with local AI** (about 1.3 GB) | [Intel with AI (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64-AI.dmg) |
 
 [All release files and SHA256 checksums](https://github.com/hyunolike/hanjang-jeju/releases/latest)
 
@@ -76,11 +79,11 @@ These links point to the latest published installers. On a Mac, check your chip 
 
 ### Optional: ask questions on desktop
 
-Manual analysis does not need an AI model. To choose an analysis with a question on Windows, close the app, run the [AI pack installer](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) (no administrator rights or internet needed after download, so you can carry it on a USB drive), then open **한 장 제주** again. The question box shows **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)** when the model is loaded; the first load can take about a minute.
+Manual analysis does not need an AI model. The easiest way to ask questions is to install a **with local AI** edition above: the app and the model are installed together and work without the internet. If you already installed the standard Windows edition, close the app, run the [AI pack installer](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) (no administrator rights or internet needed after download, so you can carry it on a USB drive), then open **한 장 제주** again. The question box shows **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)** when the model is loaded; the first load can take about a minute.
 
 The AI pack contains a pinned llama.cpp CPU build and the Qwen3 1.7B model (Q4_K_M). The app starts it only on `127.0.0.1` with a new key for each run, and stops it when the app closes. The model receives the question, column metadata and limited category examples, never raw CSV rows.
 
-On a Mac, or if you already use [Ollama](https://ollama.com/download), install Ollama and run:
+If you installed the standard Mac edition, or already use [Ollama](https://ollama.com/download), install Ollama and run:
 
 ```bash
 ollama pull qwen3:1.7b

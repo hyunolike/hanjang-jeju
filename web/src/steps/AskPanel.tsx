@@ -75,7 +75,7 @@ export function AskPanel({ dataset, onRun }: { dataset: Dataset; onRun: (o: Anal
             ? "모델을 불러오는 중이에요. 처음 켤 때 1분쯤 걸릴 수 있어요."
             : packProblem
               ? model.data.reason
-              : "AI 팩(HanJangJeju-AI-Pack-windows-x64.exe)을 설치하면 인터넷 없이 질문으로 분석할 수 있어요."}
+              : model.data.install_hint ?? "로컬 AI를 연결하면 질문으로 분석할 수 있어요."}
         </p>
       )}
       {ask.isPending && <p className="mt-3 text-[15px] text-muted-foreground">질문을 분석 계획으로 바꾸는 중이에요…</p>}

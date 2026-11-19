@@ -249,11 +249,12 @@ def selfcheck() -> dict:
         except llm.ModelUnavailable as err:
             url_ok, url_detail = False, str(err)
     if server is not None:
-        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": True, "detail": f"{server.pack.name} (llama.cpp {server.pack.llama_cpp})", "optional": True}
+        where = "앱에 포함" if server.pack.bundled else "따로 설치"
+        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": True, "detail": f"{server.pack.name} (llama.cpp {server.pack.llama_cpp}, {where})", "optional": True}
     elif aipack.error():
         pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": False, "detail": aipack.error(), "optional": True}
     else:
-        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": False, "detail": "설치하지 않았어요. AI 팩을 설치하면 질문으로 분석할 수 있어요.", "optional": True}
+        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": False, "detail": f"없어요. {aipack.install_hint()}", "optional": True}
     warning = privacy.ollama_host_warning()
     files = privacy.files()
     settings = privacy.load()

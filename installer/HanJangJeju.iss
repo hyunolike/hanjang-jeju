@@ -1,11 +1,19 @@
 ; 한 장 제주 설치 프로그램 (Inno Setup 6)
 ; 관리자 권한 없이 사용자 영역에 설치한다. 센터 PC의 공용 계정에서도 설치할 수 있게 하기 위해서다.
 ; 빌드: iscc installer\HanJangJeju.iss  (output\app 에 WPF 프로그램과 engine 폴더가 있어야 한다)
+; AI 포함판(B01): iscc /DWithAI installer\HanJangJeju.iss  (output\ai-pack 도 있어야 한다)
+;   미포함판과 같은 AppId라 서로 덮어 설치하고 같은 제거 프로그램을 쓴다. AI 팩은 {app}\ai-pack에 들어가
+;   앱을 지우면 함께 지워진다. 포함판 위에 미포함판을 설치해도 ai-pack은 지우지 않는다(AI가 갑자기 사라지지 않게).
 
 #define AppName "한 장 제주"
 #define AppVersion GetEnv("APP_VERSION")
 #if AppVersion == ""
   #error "APP_VERSION must be read from pyproject.toml before building the installer"
+#endif
+#ifdef WithAI
+  #define Edition "-AI"
+#else
+  #define Edition ""
 #endif
 
 [Setup]
@@ -22,7 +30,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\output\installer
-OutputBaseFilename=HanJangJeju-Setup-{#AppVersion}
+OutputBaseFilename=HanJangJeju-Setup{#Edition}-{#AppVersion}
 SetupIconFile=..\windows\HanJangJeju\app.ico
 UninstallDisplayIcon={app}\HanJangJeju.exe
 Compression=lzma2/ultra64
@@ -35,8 +43,22 @@ Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 [Tasks]
 Name: "desktopicon"; Description: "바탕화면에 바로가기 만들기"; GroupDescription: "바로가기:"
 
+#ifdef WithAI
+[InstallDelete]
+; 이전 팩의 DLL과 모델이 남으면 llama.cpp가 다른 빌드의 ggml-*.dll을 읽어 멈출 수 있다(M05와 같은 이유)
+Type: filesandordirs; Name: "{app}\ai-pack"
+#endif
+
 [Files]
 Source: "..\output\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+#ifdef WithAI
+Source: "..\output\ai-pack\ai-pack.json"; DestDir: "{app}\ai-pack"; Flags: ignoreversion
+Source: "..\output\ai-pack\README.txt"; DestDir: "{app}\ai-pack"; Flags: ignoreversion
+Source: "..\output\ai-pack\llama\*"; DestDir: "{app}\ai-pack\llama"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\output\ai-pack\licenses\*"; DestDir: "{app}\ai-pack\licenses"; Flags: ignoreversion
+; 모델은 이미 압축된 것과 같아 다시 압축하지 않는다(ultra64 solid로 1GB를 압축하면 시간만 든다)
+Source: "..\output\ai-pack\models\*"; DestDir: "{app}\ai-pack\models"; Flags: ignoreversion nocompression
+#endif
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\HanJangJeju.exe"

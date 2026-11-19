@@ -64,9 +64,12 @@ https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 | 平台 | 下载 |
 | --- | --- |
 | Windows 10/11，64 位 | [Windows 安装程序（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe) |
+| Windows 10/11，64 位，**含本地 AI**（约 1.2 GB） | [含 AI 的 Windows 安装程序（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64-AI.exe) |
 | Windows AI 包（可选，约 1.1 GB） | [AI 包安装程序（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) |
 | Apple 芯片 Mac（M1 及之后） | [Apple 芯片版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg) |
+| Apple 芯片 Mac，**含本地 AI**（约 1.3 GB） | [含 AI 的 Apple 芯片版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64-AI.dmg) |
 | Intel 芯片 Mac | [Intel 版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg) |
+| Intel 芯片 Mac，**含本地 AI**（约 1.3 GB） | [含 AI 的 Intel 版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64-AI.dmg) |
 
 [查看所有安装文件和 SHA256 校验和](https://github.com/hyunolike/hanjang-jeju/releases/latest)
 
@@ -76,11 +79,11 @@ https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 
 ### 可选：在桌面版中通过提问选择分析
 
-手动选择分析项目无需 AI 模型。在 Windows 上如需通过提问选择分析，请先关闭应用，运行 [AI 包安装程序](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe)，然后重新打开 **한 장 제주**。下载后安装无需管理员权限或联网，可以用 U 盘拷贝到离线电脑。模型加载完成后，提问框会显示 **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)**；首次加载可能需要约一分钟。
+手动选择分析项目无需 AI 模型。使用提问功能最简单的方法是下载上方的**含本地 AI** 安装包：应用和模型一起安装，无需联网即可使用。如果已经安装了标准 Windows 版，请先关闭应用，运行 [AI 包安装程序](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe)，然后重新打开 **한 장 제주**。下载后安装无需管理员权限或联网，可以用 U 盘拷贝到离线电脑。模型加载完成后，提问框会显示 **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)**；首次加载可能需要约一分钟。
 
 AI 包包含固定版本的 llama.cpp CPU 版服务器和 Qwen3 1.7B 模型（Q4_K_M）。应用启动时只在 `127.0.0.1` 上运行它，每次运行都使用新的密钥，关闭应用时一并停止。发送给模型的只有问题、列元数据和少量类别值示例，不发送 CSV 原始数据行。
 
-如果使用 Mac，或已经在用 [Ollama](https://ollama.com/download)，请安装并启动 Ollama，然后运行：
+如果安装的是标准 Mac 版，或已经在用 [Ollama](https://ollama.com/download)，请安装并启动 Ollama，然后运行：
 
 ```bash
 ollama pull qwen3:1.7b
