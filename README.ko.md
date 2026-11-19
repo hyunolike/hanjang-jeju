@@ -14,6 +14,14 @@
   <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-dark.svg"><img src="assets/dl-mac-x64-light.svg" width="264" alt="Mac용 내려받기 (Intel 칩)"></picture></a>
 </p>
 
+<p align="center"><strong>로컬 AI 포함판 — 앱과 모델을 한 번에 설치</strong></p>
+
+<p align="center">
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64-AI.exe"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-windows-ai-dark.svg"><img src="assets/dl-windows-ai-light.svg" width="264" alt="로컬 AI 포함 Windows용 내려받기"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64-AI.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-arm64-ai-dark.svg"><img src="assets/dl-mac-arm64-ai-light.svg" width="264" alt="로컬 AI 포함 Apple 칩 Mac용 내려받기"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64-AI.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-ai-dark.svg"><img src="assets/dl-mac-x64-ai-light.svg" width="264" alt="로컬 AI 포함 Intel Mac용 내려받기"></picture></a>
+</p>
+
 한 장 제주는 제주빅데이터센터에서 받은 CSV를 분석해 인쇄하거나 PDF로 저장할 수 있는 결과 한 장을 만듭니다. 열 이름과 빈 값, 소계와 단위를 확인하고 변화를 살펴보세요. 분석 카드의 숫자는 사실 번호로 근거를 확인할 수 있습니다.
 
 **PC용 프로그램은 내 컴퓨터 안에서 분석합니다.** 웹 체험판은 업로드한 CSV를 서버로 보내 분석합니다. 내 PC 밖으로 나가면 안 되는 자료는 PC판에서 사용하세요.

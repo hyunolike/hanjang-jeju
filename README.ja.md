@@ -14,6 +14,14 @@
   <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-ja-dark.svg"><img src="assets/dl-mac-x64-ja-light.svg" width="264" alt="Intel Mac 版をダウンロード"></picture></a>
 </p>
 
+<p align="center"><strong>ローカル AI 付き — アプリとモデルをまとめてインストール</strong></p>
+
+<p align="center">
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64-AI.exe"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-windows-ai-ja-dark.svg"><img src="assets/dl-windows-ai-ja-light.svg" width="264" alt="ローカル AI 付き Windows 版をダウンロード"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64-AI.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-arm64-ai-ja-dark.svg"><img src="assets/dl-mac-arm64-ai-ja-light.svg" width="264" alt="ローカル AI 付き Apple シリコン Mac 版をダウンロード"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64-AI.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-ai-ja-dark.svg"><img src="assets/dl-mac-x64-ai-ja-light.svg" width="264" alt="ローカル AI 付き Intel Mac 版をダウンロード"></picture></a>
+</p>
+
 HanJang Jeju は、済州ビッグデータセンターの CSV を、印刷や PDF 保存ができるレポートにまとめます。列の意味、欠損値、小計、単位を確認してから変化を調べられます。分析カードの数字は、ファクト ID から計算の根拠を確認できます。
 
 **デスクトップ版は利用者の PC 内で分析します。** Web デモはアップロードされた CSV をサーバーに送信して分析します。PC の外へ出せないデータにはデスクトップ版を使ってください。

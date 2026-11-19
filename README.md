@@ -14,6 +14,14 @@
   <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-en-dark.svg"><img src="assets/dl-mac-x64-en-light.svg" width="264" alt="Download for Mac with Intel"></picture></a>
 </p>
 
+<p align="center"><strong>With local AI — app and model in one download</strong></p>
+
+<p align="center">
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64-AI.exe"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-windows-ai-en-dark.svg"><img src="assets/dl-windows-ai-en-light.svg" width="264" alt="Download Windows with local AI"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64-AI.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-arm64-ai-en-dark.svg"><img src="assets/dl-mac-arm64-ai-en-light.svg" width="264" alt="Download Apple silicon Mac with local AI"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64-AI.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-ai-en-dark.svg"><img src="assets/dl-mac-x64-ai-en-light.svg" width="264" alt="Download Intel Mac with local AI"></picture></a>
+</p>
+
 HanJang Jeju turns CSV files from the Jeju Big Data Center into a report you can print or save as a PDF. Review column meanings, missing values, subtotals and units before exploring changes. Analysis cards link their numbers to supporting facts.
 
 **Desktop analysis runs on your computer.** The web demo sends uploaded CSV files to a server for analysis. Use the desktop app for data that must stay on your PC.

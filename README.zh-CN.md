@@ -14,6 +14,14 @@
   <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-zh-CN-dark.svg"><img src="assets/dl-mac-x64-zh-CN-light.svg" width="264" alt="下载 Intel 芯片 Mac 版"></picture></a>
 </p>
 
+<p align="center"><strong>含本地 AI — 一次下载应用和模型</strong></p>
+
+<p align="center">
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64-AI.exe"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-windows-ai-zh-CN-dark.svg"><img src="assets/dl-windows-ai-zh-CN-light.svg" width="264" alt="下载含本地 AI 的 Windows 版"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64-AI.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-arm64-ai-zh-CN-dark.svg"><img src="assets/dl-mac-arm64-ai-zh-CN-light.svg" width="264" alt="下载含本地 AI 的 Apple 芯片 Mac 版"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64-AI.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-ai-zh-CN-dark.svg"><img src="assets/dl-mac-x64-ai-zh-CN-light.svg" width="264" alt="下载含本地 AI 的 Intel Mac 版"></picture></a>
+</p>
+
 HanJang Jeju 可将济州大数据中心的 CSV 文件转为可打印或保存为 PDF 的报告。分析前先核对列含义、缺失值、小计和单位；分析卡片中的数字可通过事实编号追溯到计算依据。
 
 **桌面版在你的电脑上分析数据。** 网页体验版会将上传的 CSV 发送到服务器进行分析。必须留在本机的数据请使用桌面版处理。
