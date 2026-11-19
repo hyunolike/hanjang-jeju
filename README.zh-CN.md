@@ -51,7 +51,7 @@ https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 | --- | --- | --- |
 | 适用场景 | 数据必须留在本机 | 体验应用，或分析允许公开分享的 CSV |
 | CSV 处理位置 | 本机 | 发送到服务器，在请求期间处理 |
-| 可选的提问规划功能 | 本地 Ollama | 已接入的 Cloudflare AI |
+| 可选的提问规划功能 | 本地 AI 包（llama.cpp）或 Ollama | 已接入的 Cloudflare AI |
 | 发送给模型的信息 | 问题、列元数据和少量类别值示例，用于制定计划 | 问题和列元数据，不发送 CSV 原始数据行 |
 | 输入范围 | 应用能够读取的 CSV | 不超过 3 MiB、20,000 行、50 列的 CSV |
 
@@ -64,6 +64,7 @@ https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 | 平台 | 下载 |
 | --- | --- |
 | Windows 10/11，64 位 | [Windows 安装程序（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe) |
+| Windows AI 包（可选，约 1.1 GB） | [AI 包安装程序（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) |
 | Apple 芯片 Mac（M1 及之后） | [Apple 芯片版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg) |
 | Intel 芯片 Mac | [Intel 版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg) |
 
@@ -75,13 +76,17 @@ https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 
 ### 可选：在桌面版中通过提问选择分析
 
-手动选择分析项目无需 AI 模型。如果需要提问功能，请安装并启动 [Ollama](https://ollama.com/download)，然后在终端或 Windows PowerShell 中运行：
+手动选择分析项目无需 AI 模型。在 Windows 上如需通过提问选择分析，请先关闭应用，运行 [AI 包安装程序](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe)，然后重新打开 **한 장 제주**。下载后安装无需管理员权限或联网，可以用 U 盘拷贝到离线电脑。模型加载完成后，提问框会显示 **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)**；首次加载可能需要约一分钟。
+
+AI 包包含固定版本的 llama.cpp CPU 版服务器和 Qwen3 1.7B 模型（Q4_K_M）。应用启动时只在 `127.0.0.1` 上运行它，每次运行都使用新的密钥，关闭应用时一并停止。发送给模型的只有问题、列元数据和少量类别值示例，不发送 CSV 原始数据行。
+
+如果使用 Mac，或已经在用 [Ollama](https://ollama.com/download)，请安装并启动 Ollama，然后运行：
 
 ```bash
 ollama pull qwen3:1.7b
 ```
 
-模型在本机运行。模型不可用时仍可手动选择分析项目。首次下载应用和可选模型需要联网；桌面分析无需互联网或外部 AI 服务。
+没有可用模型时仍可手动选择分析项目。桌面分析无需互联网或外部 AI 服务。
 
 <a id="usage"></a>
 ## 从 CSV 到报告

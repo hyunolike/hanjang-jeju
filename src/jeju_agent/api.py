@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import re
+from contextlib import asynccontextmanager
 import shutil
 from pathlib import Path
 
@@ -17,12 +18,22 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 import json
 import os
 import threading
+import time
 
 from pydantic import BaseModel
 
-from . import llm, paths, pipeline, planner, privacy
+from . import aipack, llm, paths, pipeline, planner, privacy
 
-app = FastAPI(title="제주 센터 데이터 분석 에이전트", docs_url="/api/docs")
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    _start_warm_up()
+    try:
+        yield
+    finally:
+        aipack.stop()  # 엔진이 정상 종료하면 AI 팩 서버도 끈다(M02)
+
+
+app = FastAPI(title="제주 센터 데이터 분석 에이전트", docs_url="/api/docs", lifespan=_lifespan)
 
 # 이 엔진은 이용자의 브라우저에서도 열리므로(--open), 같은 브라우저의 다른 사이트가 요청을 보낼 수 있다.
 # 1) Host 허용 목록(P01): DNS rebinding으로 다른 이름을 달고 온 요청은 400.
@@ -65,7 +76,6 @@ def _warm_up() -> None:
         _warm["ready"] = True
 
 
-@app.on_event("startup")
 def _start_warm_up() -> None:
     import os
     import threading
@@ -73,6 +83,12 @@ def _start_warm_up() -> None:
     # 지난번에 창을 닫지 못하고 꺼졌다면 남은 작업을 여기서 지운다(자동 삭제가 켜져 있을 때).
     if os.environ.get("JEJU_KEEP_WORKSPACE") != "1":
         _startup["cleared"] = privacy.clear_if_auto()
+    # AI 팩이 있으면 모델 서버를 켠다(명세 M02). 모델을 불러오는 동안에도 엔진은 바로 쓸 수 있다.
+    # start()는 실패를 예외로 내지 않지만, 엔진 시작은 어떤 경우에도 막지 않는다(M03).
+    try:
+        aipack.start()
+    except Exception:  # noqa: BLE001
+        pass
     if os.environ.get("JEJU_SKIP_WARMUP") != "1":
         threading.Thread(target=_warm_up, daemon=True).start()
         threading.Thread(target=_warm_model, daemon=True).start()
@@ -84,6 +100,14 @@ def _warm_model() -> None:
         return
     _model["warming"] = True
     try:
+        if aipack.current() is not None:
+            # 팩 모델은 CPU로 불러오므로 시간이 걸린다. 다 불러온 뒤에 점검 질문을 보낸다.
+            for _ in range(360):
+                ready, _reason = aipack.health()
+                server = aipack.current()
+                if ready or server is None or server.process.poll() is not None:
+                    break
+                time.sleep(0.5)
         ids = {ds.id for ds in pipeline.datasets()}
         probe = "hub-502" if "hub-502" in ids else "center-1-19-dummy"  # 공개 배포판에는 허브 원본이 없다
         result = planner.plan(pipeline.find(probe), "작년보다 늘었어?", timeout=60)
@@ -215,11 +239,21 @@ def put_settings(body: Settings) -> dict:
 def selfcheck() -> dict:
     """자가 점검. 심사와 센터 운영자가 설치 직후 한눈에 확인한다."""
     status = llm.status()
-    try:
-        llm.base_url()
-        url_ok, url_detail = True, "이 PC(127.0.0.1)의 모델만 불러요"
-    except llm.ModelUnavailable as err:
-        url_ok, url_detail = False, str(err)
+    server = aipack.current()
+    if server is not None:
+        url_ok, url_detail = True, "AI 팩 서버를 이 PC(127.0.0.1)에서 실행마다 새 키로 불러요"
+    else:
+        try:
+            llm.base_url()
+            url_ok, url_detail = True, "이 PC(127.0.0.1)의 모델만 불러요"
+        except llm.ModelUnavailable as err:
+            url_ok, url_detail = False, str(err)
+    if server is not None:
+        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": True, "detail": f"{server.pack.name} (llama.cpp {server.pack.llama_cpp})", "optional": True}
+    elif aipack.error():
+        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": False, "detail": aipack.error(), "optional": True}
+    else:
+        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": False, "detail": "설치하지 않았어요. AI 팩을 설치하면 질문으로 분석할 수 있어요.", "optional": True}
     warning = privacy.ollama_host_warning()
     files = privacy.files()
     settings = privacy.load()
@@ -233,6 +267,7 @@ def selfcheck() -> dict:
             "detail": f"{status['model']} 준비됐어요" if status.get("available") and _model["ready"] else status.get("reason") or "준비 중이에요",
             "optional": True,
         },
+        pack_item,
         {"key": "model_url", "label": "모델 주소", "ok": url_ok, "detail": url_detail},
         {"key": "ollama_host", "label": "모델 외부 접속", "ok": warning is None, "detail": warning or "다른 PC에서 접속할 수 없어요"},
         {"key": "workspace", "label": "내 작업", "ok": True, "detail": f"파일 {len(files)}개"},

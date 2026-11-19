@@ -51,7 +51,7 @@ Forecasting starts with a seasonal baseline that repeats the same month's value.
 | --- | --- | --- |
 | Best for | Keeping data on your own PC | Trying the app or analyzing CSV files you are allowed to share publicly |
 | CSV processing | On your computer | Sent to the server and processed during the request |
-| Optional question planning | Local Ollama | Connected Cloudflare AI |
+| Optional question planning | Local AI pack (llama.cpp) or Ollama | Connected Cloudflare AI |
 | Information sent to the model | Question, column metadata and limited category examples used for planning | Question and column metadata; raw CSV rows are not sent to the model |
 | Input limits | CSV files the app can read | CSV up to 3 MiB, 20,000 rows and 50 columns |
 
@@ -64,6 +64,7 @@ These links point to the latest published installers. On a Mac, check your chip 
 | Platform | Download |
 | --- | --- |
 | Windows 10/11, 64-bit | [Windows installer (.exe)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe) |
+| Windows AI pack (optional, about 1.1 GB) | [AI pack installer (.exe)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) |
 | Mac with Apple silicon (M1 or later) | [Apple silicon (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg) |
 | Mac with an Intel chip | [Intel (.dmg)](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg) |
 
@@ -75,13 +76,17 @@ These links point to the latest published installers. On a Mac, check your chip 
 
 ### Optional: ask questions on desktop
 
-Manual analysis does not need an AI model. To choose an analysis with a question, install and start [Ollama](https://ollama.com/download), then run this in Terminal or Windows PowerShell:
+Manual analysis does not need an AI model. To choose an analysis with a question on Windows, close the app, run the [AI pack installer](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) (no administrator rights or internet needed after download, so you can carry it on a USB drive), then open **한 장 제주** again. The question box shows **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)** when the model is loaded; the first load can take about a minute.
+
+The AI pack contains a pinned llama.cpp CPU build and the Qwen3 1.7B model (Q4_K_M). The app starts it only on `127.0.0.1` with a new key for each run, and stops it when the app closes. The model receives the question, column metadata and limited category examples, never raw CSV rows.
+
+On a Mac, or if you already use [Ollama](https://ollama.com/download), install Ollama and run:
 
 ```bash
 ollama pull qwen3:1.7b
 ```
 
-The model runs locally. If it is unavailable, select analysis options manually. Internet access is needed to download the app and optional model; desktop analysis can run without the internet or an external AI service.
+If no model is available, select analysis options manually. Desktop analysis runs without the internet or an external AI service.
 
 <a id="usage"></a>
 ## From CSV to report

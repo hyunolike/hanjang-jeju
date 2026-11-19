@@ -35,6 +35,9 @@ export function AskPanel({ dataset, onRun }: { dataset: Dataset; onRun: (o: Anal
   }
 
   const ready = model.data?.ready
+  // AI 팩은 모델을 불러오는 동안 available이 false다. 그때는 "없음"이 아니라 "준비 중"이다(M07).
+  const preparing = !ready && !!(model.data?.available || model.data?.loading)
+  const packProblem = !ready && !preparing && (model.data?.backend === "pack" || !!model.data?.pack_error)
   const unresolvedLeft = r && !r.fallback ? r.unresolved.filter((u) => !picked[u.column]) : []
   const otherBlocks = r && !r.fallback ? r.blocked.filter((b) => !b.startsWith("찾지 못한 값")) : []
 
@@ -46,7 +49,7 @@ export function AskPanel({ dataset, onRun }: { dataset: Dataset; onRun: (o: Anal
   return (
     <Panel
       title="무엇이 궁금한가요?"
-      action={<Pill tone={ready ? "teal" : "grey"}>{ready ? `로컬 AI 준비됨 (${model.data?.model})` : model.data?.available ? "로컬 AI 준비 중" : "로컬 AI 없음"}</Pill>}
+      action={<Pill tone={ready ? "teal" : "grey"}>{ready ? `로컬 AI 준비됨 (${model.data?.model}${model.data?.backend === "pack" ? ", AI 팩" : ""})` : preparing ? "로컬 AI 준비 중" : "로컬 AI 없음"}</Pill>}
     >
       <form
         className="flex gap-2"
@@ -66,6 +69,15 @@ export function AskPanel({ dataset, onRun }: { dataset: Dataset; onRun: (o: Anal
           <ArrowUp />
         </Button>
       </form>
+      {!ready && model.data && !model.isLoading && (
+        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+          {preparing
+            ? "모델을 불러오는 중이에요. 처음 켤 때 1분쯤 걸릴 수 있어요."
+            : packProblem
+              ? model.data.reason
+              : "AI 팩(HanJangJeju-AI-Pack-windows-x64.exe)을 설치하면 인터넷 없이 질문으로 분석할 수 있어요."}
+        </p>
+      )}
       {ask.isPending && <p className="mt-3 text-[15px] text-muted-foreground">질문을 분석 계획으로 바꾸는 중이에요…</p>}
       {ask.error && <p className="mt-3 text-[15px] text-destructive">{(ask.error as Error).message}</p>}
       {r?.fallback && <p className="mt-3 text-[15px] text-[var(--caution)]">질문을 알아듣지 못했어요. 아래에서 직접 골라 주세요.</p>}

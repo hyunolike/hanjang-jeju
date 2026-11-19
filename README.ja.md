@@ -51,7 +51,7 @@ https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 | --- | --- | --- |
 | 向いている用途 | データを PC 内に保持したい場合 | アプリを試す場合や、公開可能な CSV を分析する場合 |
 | CSV の処理 | 利用者の PC 内 | サーバーに送信し、リクエスト中に処理 |
-| 任意の質問機能 | ローカルの Ollama | 接続済みの Cloudflare AI |
+| 任意の質問機能 | ローカル AI パック（llama.cpp）または Ollama | 接続済みの Cloudflare AI |
 | モデルに送る情報 | 質問、列メタデータ、限定的なカテゴリ値の例 | 質問と列メタデータ。CSV の生データ行は送信しません |
 | 入力の範囲 | アプリが読み込める CSV | 3 MiB、20,000 行、50 列以下の CSV |
 
@@ -64,6 +64,7 @@ Web 版には月次分析に適した日付と、合計できる数値が必要�
 | 対応環境 | ダウンロード |
 | --- | --- |
 | Windows 10/11、64 ビット | [Windows インストーラー（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe) |
+| Windows AI パック（任意、約 1.1 GB） | [AI パック インストーラー（.exe）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe) |
 | Apple シリコン搭載 Mac（M1 以降） | [Apple シリコン版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg) |
 | Intel 搭載 Mac | [Intel 版（.dmg）](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg) |
 
@@ -75,13 +76,17 @@ Web 版には月次分析に適した日付と、合計できる数値が必要�
 
 ### 任意：デスクトップで質問機能を使う
 
-分析項目を手動で選ぶ場合、AI モデルは不要です。質問から項目を選びたい場合は [Ollama](https://ollama.com/download) をインストールして起動し、ターミナルまたは Windows PowerShell で次を実行します。
+分析項目を手動で選ぶ場合、AI モデルは不要です。Windows で質問から項目を選びたい場合は、アプリを閉じて [AI パック インストーラー](https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-AI-Pack-windows-x64.exe)を実行し、**한 장 제주** を開き直します。ダウンロード後のインストールには管理者権限もインターネットも不要なので、USB メモリでオフラインの PC に持ち込めます。モデルの読み込みが終わると質問欄に **로컬 AI 준비됨 (Qwen3 1.7B, AI 팩)** と表示されます。初回の読み込みには 1 分ほどかかる場合があります。
+
+AI パックには、バージョンを固定した llama.cpp の CPU 版サーバーと Qwen3 1.7B モデル（Q4_K_M）が入っています。アプリの起動時に `127.0.0.1` 上だけで、実行ごとに新しいキーを使って起動し、アプリを閉じると一緒に停止します。モデルに送るのは質問、列メタデータ、限定的なカテゴリ値の例だけで、CSV の生データ行は送りません。
+
+Mac の場合、またはすでに [Ollama](https://ollama.com/download) を使っている場合は、Ollama をインストールして起動し、次を実行します。
 
 ```bash
 ollama pull qwen3:1.7b
 ```
 
-モデルは PC 内で動作します。利用できない場合も手動で分析項目を選べます。アプリと任意のモデルの初回ダウンロードにはインターネットが必要ですが、デスクトップでの分析はインターネットや外部 AI サービスなしで実行できます。
+利用できるモデルがない場合も手動で分析項目を選べます。デスクトップでの分析はインターネットや外部 AI サービスなしで実行できます。
 
 <a id="usage"></a>
 ## CSV からレポートまで

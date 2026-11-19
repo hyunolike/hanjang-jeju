@@ -1,7 +1,7 @@
 name: release
 
-# 공개 배포판을 Windows(x64), Mac(Apple 칩, Intel)용으로 만들고 실제로 켜지는지 확인한다.
-# v로 시작하는 태그를 올리면 세 설치 파일을 GitHub Release에 붙인다.
+# 공개 배포판을 Windows(x64), Mac(Apple 칩, Intel)용으로, 오프라인 AI 팩을 Windows용으로 만들고 실제로 켜지는지 확인한다.
+# v로 시작하는 태그를 올리면 세 설치 파일과 AI 팩을 GitHub Release에 붙인다.
 on:
   push:
     tags: ["v*"]
@@ -41,7 +41,7 @@ jobs:
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     defaults:
       run:
         shell: pwsh
@@ -130,6 +130,65 @@ jobs:
           } finally {
             Stop-Process $first.Id -Force -ErrorAction SilentlyContinue
           }
+      - uses: actions/cache@v4
+        with:
+          path: output/ai-pack-cache
+          key: ai-pack-${{ hashFiles('packaging/ai-pack/sources.json') }}
+      - name: AI 팩 만들고 설치해 계획 검사 (M06)
+        run: |
+          # VC++ 재배포 패키지가 없는 새 PC에서도 켜지도록 러너의 Visual Studio 재배포 폴더에서 x64 CRT를 넣는다(M6)
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $crt = Get-ChildItem "$vs\VC\Redist\MSVC\*\x64\Microsoft.VC14*.CRT" -Directory | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $crt) { throw "VC 재배포 x64 CRT 폴더를 찾지 못했어요" }
+          "CRT: $($crt.FullName)"
+          # 고정한 llama.cpp와 모델만 받고 SHA256이 다르거나 팩 밖 DLL이 필요하면 멈춘다(M05)
+          uv run --frozen python scripts/build_ai_pack.py windows-x64 --crt-dir $crt.FullName --out output/ai-pack --cache output/ai-pack-cache
+          if ($LASTEXITCODE -ne 0) { throw "AI 팩을 만들지 못했어요" }
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc installer\HanJangJeju-AI.iss
+          if ($LASTEXITCODE -ne 0) { throw "AI 팩 설치 파일을 만들지 못했어요" }
+          $pack = Get-ChildItem output\installer\HanJangJeju-AI-Pack-*.exe | Select-Object -First 1
+          $proc = Start-Process $pack.FullName -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "AI 팩 설치 종료 코드 $($proc.ExitCode)" }
+          if (-not (Test-Path "$env:LOCALAPPDATA\Programs\HanJangJeju-AI\ai-pack.json")) { throw "AI 팩이 설치되지 않았어요" }
+          $app = "$env:LOCALAPPDATA\Programs\HanJangJeju"
+
+          # 1) 바깥 Job이 없는 엔진(--open과 같은 경로): 준비, 처음 보는 질문의 지연, 강제 종료 뒤 서버 정리
+          $env:JEJU_WORKSPACE = "$env:RUNNER_TEMP\ws-ai"
+          $p = Start-Process "$app\engine\jeju-engine.exe" -ArgumentList "--port 8796" -PassThru -WindowStyle Hidden
+          try {
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            do { Start-Sleep 2; try { $m = Invoke-RestMethod http://127.0.0.1:8796/api/model } catch { $m = $null } } until (($m -and $m.ready) -or $sw.Elapsed.TotalSeconds -gt 300)
+            if (-not ($m -and $m.ready)) { throw "AI 팩 모델이 300초 안에 준비되지 않았어요: $($m | ConvertTo-Json -Compress)" }
+            if ($m.backend -ne "pack") { throw "AI 팩이 아니라 $($m.backend)로 연결됐어요" }
+            "모델 준비: $($m.model), $([int]$sw.Elapsed.TotalSeconds)초"
+            # 시작 점검(1-19 더미, '작년보다 늘었어?')과 다른 자료와 질문이라 프롬프트 캐시를 쓰지 못한다(M4)
+            $body = [Text.Encoding]::UTF8.GetBytes('{"question":"애월읍 방문 인구 성별 비중은?"}')
+            $plan = Invoke-RestMethod -Method Post http://127.0.0.1:8796/api/datasets/center-4-11-dummy/plan -ContentType "application/json; charset=utf-8" -Body $body -TimeoutSec 120
+            if ($plan.fallback) { throw "AI 팩 계획이 직접 선택으로 넘어갔어요: $($plan.reason) $($plan.detail)" }
+            "처음 보는 질문의 계획: intent=$($plan.plan.intent) group_by=$($plan.plan.group_by) $($plan.latency_ms)ms (러너 CPU)"
+            if (@(Get-Process llama-server -ErrorAction SilentlyContinue).Count -ne 1) { throw "AI 팩 서버가 1개가 아니에요" }
+          } finally {
+            # 정리 요청 없이 강제로 끝내도 엔진의 Job Object가 서버를 함께 끝내야 한다(M02)
+            Stop-Process $p.Id -Force -ErrorAction SilentlyContinue
+          }
+          Start-Sleep 3
+          if (Get-Process llama-server -ErrorAction SilentlyContinue) { throw "엔진이 끝났는데 AI 팩 서버가 남았어요" }
+
+          # 2) 창 프로그램 경로: WPF를 강제 종료해도 서버가 남지 않는다(M02)
+          $w = Start-Process "$app\HanJangJeju.exe" -PassThru
+          try {
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            do { Start-Sleep 1; $s = Get-Process llama-server -ErrorAction SilentlyContinue } until ($s -or $sw.Elapsed.TotalSeconds -gt 120)
+            if (-not $s) { throw "창 프로그램이 AI 팩 서버를 켜지 않았어요" }
+          } finally {
+            Stop-Process $w.Id -Force -ErrorAction SilentlyContinue
+          }
+          Start-Sleep 5
+          if (Get-Process llama-server -ErrorAction SilentlyContinue) { throw "창 프로그램이 끝났는데 AI 팩 서버가 남았어요" }
+          if (Get-Process jeju-engine -ErrorAction SilentlyContinue) { throw "창 프로그램이 끝났는데 엔진이 남았어요" }
+          "AI 팩 크기: {0:N0} MB" -f ($pack.Length / 1MB)
       - uses: actions/upload-artifact@v4
         with:
           name: windows
@@ -202,6 +261,7 @@ jobs:
           # README 버튼이 releases/latest/download/<이름>으로 바로 받게, 버전 없는 고정 이름으로 바꾼다
           cd dist
           mv HanJangJeju-Setup-*.exe HanJangJeju-Setup-windows-x64.exe
+          mv HanJangJeju-AI-Pack-*.exe HanJangJeju-AI-Pack-windows-x64.exe
           mv HanJangJeju-*-arm64.dmg HanJangJeju-mac-arm64.dmg
           mv HanJangJeju-*-x64.dmg HanJangJeju-mac-x64.dmg
           sha256sum * > SHA256SUMS.txt && ls -la && cd ..
