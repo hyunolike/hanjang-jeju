@@ -2,19 +2,23 @@ import { useRef, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Database, Download, FileSpreadsheet, FlaskConical, Upload as UploadIcon } from "lucide-react"
 import { toast } from "sonner"
-import { api, STATIC, type Dataset } from "@/lib/api"
-import { BigTitle, Illust, ListRow, Panel, Pill } from "@/components/kit"
+import { api, STATIC, WEB_UPLOAD, type Dataset } from "@/lib/api"
+import { useQueryClient } from "@tanstack/react-query"
+import { Illust, ListRow, Panel, Pill } from "@/components/kit"
+import { StageIntro } from "@/components/stage"
 import { buttonVariants } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 export function Upload({ onPick }: { onPick: (ds: Dataset) => void }) {
+  const queryClient = useQueryClient()
   const list = useQuery({ queryKey: ["datasets"], queryFn: api.datasets })
   const input = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
   const upload = useMutation({
     mutationFn: api.upload,
     onSuccess: (ds) => {
+      if (WEB_UPLOAD) queryClient.removeQueries({ predicate: (q) => q.queryKey.some((key) => typeof key === "string" && key.startsWith("web-")) })
       toast.success("자료를 넣었어요")
       onPick(ds)
     },
@@ -29,9 +33,9 @@ export function Upload({ onPick }: { onPick: (ds: Dataset) => void }) {
 
   return (
     <div className="space-y-6">
-      <BigTitle eyebrow="1단계 넣기" title={<>어떤 자료로<br className="sm:hidden" /> 시작할까요?</>} sub="센터에서 내려받은 CSV를 넣거나, 아래 예시 자료를 골라 주세요." />
+      <StageIntro stage="upload" title={<>제주 데이터,<br />한 장으로 읽어요</>} description={STATIC && !WEB_UPLOAD ? "아래 공개 예시로 흐름을 살펴보세요. 내 CSV는 PC용 프로그램에서 분석할 수 있어요." : WEB_UPLOAD ? "공개 가능한 CSV를 넣어 주세요. 날짜와 숫자를 정리해 흐름을 찾아드릴게요." : "센터에서 내려받은 CSV로 시작해 보세요. 날짜와 숫자를 정리해 흐름을 찾아드릴게요."} />
 
-      {STATIC ? (
+      {STATIC && !WEB_UPLOAD ? (
         <Panel>
           <div className="flex items-center gap-5">
             <Illust name="offline" fallback={UploadIcon} className="size-16" />
@@ -74,12 +78,13 @@ export function Upload({ onPick }: { onPick: (ds: Dataset) => void }) {
         <Illust name="upload" fallback={UploadIcon} className="size-16" />
         <span className="flex-1">
           <span className="block text-[19px] font-bold">CSV를 끌어다 놓으세요</span>
-          <span className="mt-1 block text-[15px] text-muted-foreground">눌러서 고를 수도 있어요. 파일은 이 PC 밖으로 나가지 않아요.</span>
+          <span className="mt-1 block text-[15px] text-muted-foreground">{WEB_UPLOAD ? "최대 3MiB. 분석 서버로 전송하며 파일을 보관하지 않아요." : "눌러서 고를 수도 있어요. 파일은 이 PC 밖으로 나가지 않아요."}</span>
         </span>
         {upload.isPending && <Pill tone="teal">읽는 중</Pill>}
       </button>
       )}
-      <input ref={input} type="file" accept=".csv" hidden onChange={(e) => e.target.files?.[0] && upload.mutate(e.target.files[0])} />
+      {WEB_UPLOAD && <p className="text-[14px] leading-relaxed text-muted-foreground">공개할 수 있는 자료만 넣어 주세요. 센터 원본과 주최 제공 제한 자료는 PC용 프로그램을 이용해 주세요. AI에는 질문과 열 정보만 보내요.</p>}
+      <input ref={input} type="file" accept=".csv" hidden onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload.mutate(file) }} />
 
       {list.isLoading && <Skeleton className="h-64 rounded-[22px]" />}
       {list.error && <Panel><p className="text-[15px] text-destructive">{(list.error as Error).message}</p></Panel>}

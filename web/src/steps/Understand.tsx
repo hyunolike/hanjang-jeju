@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, CalendarX, Check, Sparkles } from "lucide-react"
-import { api, type ColumnInfo, type Dataset } from "@/lib/api"
+import { api, WEB_UPLOAD, type ColumnInfo, type Dataset } from "@/lib/api"
+import { WebSelection } from "./WebSelection"
 import { BigTitle, CtaBar, Illust, Panel, Pill } from "@/components/kit"
+import { ActionFeedback } from "@/components/form"
+import { StageIntro, StageLoading } from "@/components/stage"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { period } from "@/lib/format"
 
@@ -17,9 +19,10 @@ const ROLE: Record<ColumnInfo["role"], { label: string; tone: "teal" | "grey" | 
 
 export function Understand({ dataset, onBack, onNext }: { dataset: Dataset; onBack: () => void; onNext: () => void }) {
   const q = useQuery({ queryKey: ["understand", dataset.id], queryFn: () => api.understand(dataset.id) })
-  if (q.isLoading) return <Skeleton className="h-[520px] rounded-[22px]" />
-  if (q.error || !q.data) return <Panel><p className="text-destructive">{(q.error as Error)?.message}</p></Panel>
+  if (q.isLoading) return <StageLoading stage="understand" />
+  if (q.error || !q.data) return <div className="space-y-5"><BigTitle eyebrow="2단계 기준 확인" title="자료를 읽지 못했어요" /><ActionFeedback tone="danger" title="다시 시작할 수 있어요" description={(q.error as Error)?.message || "자료를 다시 고른 뒤 확인해 주세요."} /><CtaBar><Button size="cta" className="w-full" onClick={onBack}>자료 다시 고르기</Button></CtaBar></div>
   const u = q.data
+  const uploaded = WEB_UPLOAD && dataset.source === "upload"
   const name = u.recognition.title ?? "알 수 없는 표"
   const sum = (k: "missing" | "none" | "masked" | "trimmed") => u.columns.reduce((acc, c) => acc + c[k], 0)
 
@@ -33,15 +36,20 @@ export function Understand({ dataset, onBack, onNext }: { dataset: Dataset; onBa
 
   return (
     <div className="space-y-5">
-      <BigTitle
-        eyebrow="2단계 이해"
-        title={u.recognition.table_id ? <>이 자료는<br className="sm:hidden" /> <span className="text-primary">{name}</span>이에요</> : "어떤 표인지 알아보지 못했어요"}
-        sub={
+      <StageIntro
+        stage="understand"
+        title={uploaded ? "읽은 자료를 확인해 볼까요?" : u.recognition.table_id ? name : "분석할 기준을 확인해 주세요"}
+        description={
           u.months.first
             ? `${period(u.months.first)}부터 ${period(u.months.last!)}까지 ${u.months.count}개월, ${u.clean.rows.toLocaleString()}행이에요.`
             : `${u.clean.rows.toLocaleString()}행이에요.`
         }
       />
+
+      {uploaded && <WebSelection dataset={dataset} info={u} onNext={onNext} onBack={onBack} />}
+
+      <details open={!uploaded} className="space-y-5">
+      <summary className={uploaded ? "cursor-pointer rounded-xl px-2 py-3 text-[15px] font-medium text-[var(--grey-700)]" : "hidden"}>자료를 어떻게 읽었나요?</summary>
 
       <Panel title="이렇게 정리했어요" action={<Illust name="clean" fallback={Sparkles} className="size-11" />}>
         <ul className="space-y-3">
@@ -103,14 +111,15 @@ export function Understand({ dataset, onBack, onNext }: { dataset: Dataset; onBa
         </div>
       </Panel>
 
-      <CtaBar>
+      </details>
+      {!uploaded && <CtaBar>
         <Button variant="soft" size="cta" className="flex-1 sm:flex-none" onClick={onBack}>
           다른 자료
         </Button>
-        <Button size="cta" className="flex-[2]" onClick={onNext} disabled={!u.time_column}>
+        {!(WEB_UPLOAD && dataset.source === "upload") && <Button size="cta" className="flex-[2]" onClick={onNext} disabled={!u.time_column}>
           분석하기
-        </Button>
-      </CtaBar>
+        </Button>}
+      </CtaBar>}
     </div>
   )
 }

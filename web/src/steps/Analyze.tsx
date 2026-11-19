@@ -2,12 +2,15 @@ import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts"
 import { BarChart3, CalendarRange, CalendarX, Lightbulb, TrendingUp } from "lucide-react"
-import { api, type Analysis, type AnalyzeOptions, type Card, type Dataset } from "@/lib/api"
+import { api, WEB_UPLOAD, type Analysis, type AnalyzeOptions, type Card, type Dataset } from "@/lib/api"
+import { WebAskPanel } from "./WebAskPanel"
+import { canOfferForecast } from "@/lib/selection"
 import { BigTitle, CtaBar, Illust, Panel, Pill, Stat } from "@/components/kit"
+import { StageIntro, StageLoading } from "@/components/stage"
+import { ActionFeedback } from "@/components/form"
 import { Button } from "@/components/ui/button"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
 import { factText, money, period } from "@/lib/format"
 import { JoinPanel } from "./JoinPanel"
 import { AskPanel } from "./AskPanel"
@@ -38,11 +41,12 @@ export function Analyze({
   onBack: () => void
   onNext: (a: Analysis) => void
 }) {
-  const q = useQuery({ queryKey: ["analyze", dataset.id, JSON.stringify(choice)], queryFn: () => api.analyze(dataset.id, choice), placeholderData: (prev) => prev })
+  const uploaded = WEB_UPLOAD && dataset.source === "upload"
+  const q = useQuery({ queryKey: ["analyze", dataset.id, JSON.stringify(choice)], queryFn: () => api.analyze(dataset.id, choice), retry: uploaded ? false : 1 })
   const a = q.data
   const chart = useMemo(() => (a && !a.error ? chartData(a) : []), [a])
-  if (q.isLoading) return <Skeleton className="h-[640px] rounded-[22px]" />
-  if (q.error || !a) return <Panel><p className="text-destructive">{(q.error as Error)?.message}</p></Panel>
+  if (q.isLoading) return <StageLoading stage="analyze" />
+  if (q.error || !a) return <div className="space-y-5"><BigTitle eyebrow="3단계 발견 보기" title="분석 결과를 불러오지 못했어요" /><ActionFeedback tone="danger" title="분석 기준을 다시 확인해 주세요" description={(q.error as Error)?.message || "잠시 뒤 다시 분석해 주세요."} /><CtaBar><Button size="cta" className="w-full" onClick={onBack}>분석 기준으로 돌아가기</Button></CtaBar></div>
   if (a.error)
     return (
       <div className="space-y-5">
@@ -57,14 +61,14 @@ export function Analyze({
 
   const unit = a.value.unit
   const lead = a.cards[0]
+  const offerForecast = uploaded && canOfferForecast(a)
 
   return (
     <div className="space-y-5">
-      <AskPanel dataset={dataset} onRun={onChange} />
+      <StageIntro stage="analyze" title={a.answer ? a.answer.title : lead ? lead.title : "자료의 월별 흐름을 살펴보세요"} description={`${a.value.ko}${unit && !a.value.ko.includes(unit) ? ` (${unit})` : ""} 기준이에요. ${a.answer ? "확인한 질문에 맞춰 계산했어요." : "계산한 흐름과 눈에 띄는 변화를 모았어요."}`} />
+      {a.execution && <p className="text-[14px] text-muted-foreground">{a.execution.mode === "agent" ? `확인한 질문: ${a.execution.question}` : "직접 선택한 열로 분석한 결과예요."} {a.execution.verified ? "숫자 근거를 확인했어요." : ""}</p>}
 
-      <BigTitle eyebrow="3단계 분석" title={a.answer ? a.answer.title : lead ? lead.title : "눈에 띄는 점을 찾지 못했어요"} sub={`${a.value.ko}${unit && !a.value.ko.includes(unit) ? ` (${unit})` : ""} 기준이에요. ${a.answer ? "질문에 맞춰 계산했어요." : "묻기 전에 먼저 찾아 봤어요."}`} />
-
-      <div className="no-print flex flex-wrap gap-2">
+      {!uploaded && <div className="no-print flex flex-wrap gap-2">
         <Select value={a.value.name} onValueChange={(v) => onChange({ value: v as string, category: a.category })}>
           <SelectTrigger className="h-11 rounded-xl bg-card px-4 text-[15px] font-semibold">
             <span>값: {a.value.ko}</span>
@@ -92,7 +96,7 @@ export function Analyze({
             </SelectContent>
           </Select>
         )}
-      </div>
+      </div>}
 
       {a.answer && (
         <Panel title="질문에 대한 답" action={<Pill tone="teal">근거 {a.answer.facts.join(", ")}</Pill>}>
@@ -119,8 +123,8 @@ export function Analyze({
             <YAxis tickLine={false} axisLine={false} width={64} tick={{ fontSize: 12 }} tickFormatter={(v) => money(v, unit).replace(/ ?원$/, "")} />
             <ChartTooltip content={<ChartTooltipContent formatter={(v, n) => (n === "band" ? null : `${chartConfig[n as keyof typeof chartConfig]?.label ?? n} ${money(Number(v), unit)}`)} />} />
             <Area dataKey="band" stroke="none" fill="var(--violet)" fillOpacity={0.12} connectNulls={false} isAnimationActive={false} />
-            <Line dataKey="value" stroke="var(--teal-500)" strokeWidth={2.5} dot={false} connectNulls={false} />
-            <Line dataKey="mean" stroke="var(--violet)" strokeWidth={2.5} strokeDasharray="6 5" dot={false} />
+            <Line dataKey="value" stroke="var(--teal-500)" strokeWidth={2.5} dot={false} connectNulls={false} isAnimationActive={false} />
+            <Line dataKey="mean" stroke="var(--violet)" strokeWidth={2.5} strokeDasharray="6 5" dot={false} isAnimationActive={false} />
           </ComposedChart>
         </ChartContainer>
         <p className="mt-3 text-[13px] text-muted-foreground">출처: {a.dataset.title}{a.dataset.provider ? ` (${a.dataset.provider})` : ""}. 월 합계.</p>
@@ -141,7 +145,7 @@ export function Analyze({
               {c.warnings.map((w) => (
                 <p key={w} className="text-[14px] text-[var(--caution)]">{w}</p>
               ))}
-              <p className="mt-auto font-mono text-[12px] text-[var(--grey-400)]">근거 {c.facts.join(", ")}</p>
+              <p className="mt-auto font-mono text-[13px] text-[var(--text-evidence)]">근거 {c.facts.join(", ")}</p>
             </Panel>
           )
         })}
@@ -160,7 +164,7 @@ export function Analyze({
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Stat label="고른 방법" value={modelName(a.forecast.model)} />
-                <Stat label="기준선보다 줄인 오차" value={`${a.forecast.improvement_pct}%`} tone="violet" />
+                <Stat label="기준선보다 줄인 오차" value={a.forecast.improvement_pct == null ? "평가 자료 부족" : `${a.forecast.improvement_pct}%`} tone="violet" />
                 <Stat label="범위" value={`${a.forecast.level}%`} />
               </div>
               <p className="text-[14px] leading-relaxed text-muted-foreground">
@@ -174,14 +178,19 @@ export function Analyze({
           <div className="flex items-center gap-4">
             <Illust name="gap" fallback={CalendarX} className="size-14" />
             <div>
-              <p className="text-[17px] font-bold">이번에는 추정하지 않을게요</p>
-              <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{a.forecast_refusal}</p>
+              <p className="text-[17px] font-bold">{offerForecast ? "앞으로의 흐름도 볼까요?" : "이번에는 추정하지 않을게요"}</p>
+              <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{offerForecast ? "자료가 충분하고 비어 있는 달이 없으면, 앞으로의 범위를 계산해요." : a.forecast_refusal}</p>
+              {offerForecast && <Button className="mt-4" variant="soft" onClick={() => onChange({ value: a.value.name, category: a.category, run_forecast: true })}>예측도 계산하기</Button>}
             </div>
           </div>
         </Panel>
       )}
 
-      <JoinPanel dataset={a.dataset} value={a.value.name} />
+      <section className="no-print space-y-4" aria-label="더 살펴보기">
+        <h2 className="px-1 text-[19px] font-bold">더 궁금한 점이 있나요?</h2>
+        {uploaded ? <WebAskPanel key={`${dataset.id}-${JSON.stringify({ value: choice.value, category: choice.category })}`} dataset={dataset} onRun={onChange} /> : <AskPanel dataset={dataset} onRun={onChange} />}
+        {uploaded ? <p className="px-1 text-[14px] leading-relaxed text-muted-foreground">분석할 열은 이전 단계에서 바꿀 수 있어요. 자료 결합은 PC용 프로그램에서 이용할 수 있어요.</p> : <JoinPanel dataset={a.dataset} value={a.value.name} />}
+      </section>
 
       <CtaBar>
         <Button variant="soft" size="cta" className="flex-1 sm:flex-none" onClick={onBack}>

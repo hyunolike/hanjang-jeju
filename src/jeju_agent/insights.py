@@ -139,6 +139,9 @@ def seasonality(frame, time, value, store: FactStore) -> Card | None:
     if len(series) < 24:
         return None
     detrended = series / series.rolling(12, center=True, min_periods=6).mean()
+    detrended = detrended.replace([np.inf, -np.inf], np.nan).dropna()
+    if len(detrended) < 12:
+        return None
     by_month = detrended.groupby(detrended.index.month).mean()
     strength = float(by_month.std() / max(detrended.std(), 1e-9))
     peak, low = int(by_month.idxmax()), int(by_month.idxmin())

@@ -17,5 +17,7 @@ windows/HanJangJeju/obj/
 mac/HanJangJeju.Mac/bin/
 mac/HanJangJeju.Mac/obj/
 web/dist-static/
+web/dist-public/
+web/public/static-api/
 docs/readme/_deps/
 *.print.html

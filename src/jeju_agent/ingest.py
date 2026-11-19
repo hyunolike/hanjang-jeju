@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import re
+from io import BytesIO
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -37,6 +38,7 @@ class CleanResult:
     subtotals: pd.DataFrame
     encoding: str
     columns: dict[str, ColumnReport] = field(default_factory=dict)
+    source_rows: list[int] = field(default_factory=list)
 
     def report(self) -> dict:
         return {
@@ -63,9 +65,13 @@ def detect_encoding(raw: bytes) -> str:
 
 def read_csv(path: str | Path) -> tuple[pd.DataFrame, str]:
     raw = Path(path).read_bytes()
+    return read_bytes(raw)
+
+
+def read_bytes(raw: bytes) -> tuple[pd.DataFrame, str]:
     encoding = detect_encoding(raw)
     frame = pd.read_csv(
-        Path(path), encoding=encoding, dtype=str, keep_default_na=False
+        BytesIO(raw), encoding=encoding, dtype=str, keep_default_na=False
     )
     frame.columns = [INVISIBLE_SPACE.sub("", c).strip() for c in frame.columns]
     return frame, encoding
@@ -117,6 +123,7 @@ def clean(frame: pd.DataFrame, encoding: str = "") -> CleanResult:
         subtotals=data[subtotal_mask].reset_index(drop=True),
         encoding=encoding,
         columns=reports,
+        source_rows=[i + 2 for i, subtotal in enumerate(subtotal_mask) if not subtotal],
     )
 
 
@@ -129,4 +136,9 @@ def _mostly_numeric(series: pd.Series) -> bool:
 
 def load(path: str | Path) -> CleanResult:
     frame, encoding = read_csv(path)
+    return clean(frame, encoding)
+
+
+def load_bytes(raw: bytes) -> CleanResult:
+    frame, encoding = read_bytes(raw)
     return clean(frame, encoding)

@@ -6,5 +6,5 @@ import { defineConfig } from "vite"
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
-  server: { port: 5180, proxy: { "/api": "http://127.0.0.1:8100" } },
+  server: { port: 5180, proxy: { "/api/web": "http://127.0.0.1:8101", "/api": "http://127.0.0.1:8100" } },
 })

@@ -28,6 +28,12 @@ class Dataset:
     path: Path
     provider: str = ""
     period: str = ""
+    data: ingest.CleanResult | None = None
+    selection: dict | None = None
+
+
+def read_dataset(ds: Dataset) -> ingest.CleanResult:
+    return ds.data if ds.data is not None else ingest.load(ds.path)
 
 
 def datasets() -> list[Dataset]:
@@ -59,13 +65,16 @@ def find(dataset_id: str) -> Dataset:
 
 
 def understand(ds: Dataset) -> dict:
-    result = ingest.load(ds.path)
+    result = read_dataset(ds)
     recog = dictionary.recognize(list(result.data.columns))
     spec_columns = {c["name"]: c for c in (recog.table.columns if recog.table else ())}
     columns = []
     for name in result.data.columns:
         ko = spec_columns.get(name, {}).get("ko", "")
         sem = semantics.infer(name, ko)
+        if ds.selection:
+            role = next((role for key, role in (("time", "time"), ("value", "measure"), ("category", "category")) if ds.selection.get(key) == name), "unknown")
+            sem = semantics.Semantic(role, ds.selection.get("unit", "") if role == "measure" else "", True if role == "measure" else None)
         columns.append({"name": name, "ko": ko or name, **vars(sem), **vars(result.columns[name])})
     time = next((c["name"] for c in columns if c["role"] == "time" and c["name"] not in {"pt_year", "pt_month"}), None)
     months: dict = {}
@@ -88,7 +97,7 @@ def understand(ds: Dataset) -> dict:
         "columns": columns,
         "time_column": time,
         "months": months,
-        "preview": result.data.head(5).fillna("").to_dict(orient="records"),
+        "preview": result.data.head(5).astype(object).fillna("").to_dict(orient="records"),
     }
 
 
@@ -115,6 +124,7 @@ def analyze(
     filters: list[dict] | None = None,
     intent: str | None = None,
     period_n: int | None = None,
+    run_forecast: bool = True,
 ) -> dict:
     info = understand(ds)
     time = info["time_column"]
@@ -134,29 +144,34 @@ def analyze(
             "dataset": info["dataset"],
             "error": "월 단위 시간 열이 없어 흐름을 볼 수 없어요. 연 단위 자료는 다른 자료에 붙여 비교하는 데 써 주세요.",
         }
-    data = apply_filters(ingest.load(ds.path).data, filters)
+    data = apply_filters(read_dataset(ds).data, filters).copy()
     if data.empty:
         return {"dataset": info["dataset"], "error": "고른 조건에 맞는 행이 없어요. 거르는 값을 다시 골라 주세요."}
-    data[chosen["name"]] = pd.to_numeric(data[chosen["name"]], errors="coerce")
-    data["_ym"] = data[time].map(aggregate.to_month)
+    # 사용자 열 이름이 _ym/_p 등 내부 보조 열과 같아도 원본을 덮지 않는다.
+    working = pd.DataFrame({"__jeju_month": data[time].map(aggregate.to_month), "__jeju_value": pd.to_numeric(data[chosen["name"]], errors="coerce")})
+    if category:
+        working["__jeju_group"] = data[category]
     unit = chosen["unit"]
-    cards, store = insights.cards(data, "_ym", chosen["name"], category, unit)
+    group = "__jeju_group" if category else None
+    cards, store = insights.cards(working, "__jeju_month", "__jeju_value", group, unit)
     answer = None
     n = int(period_n) if period_n else 12
     if intent == "compare":
-        answer = answers.compare(data, "_ym", chosen["name"], store, unit, n)
+        answer = answers.compare(working, "__jeju_month", "__jeju_value", store, unit, n)
     elif intent in {"share", "rank"} and category:
         fn = answers.share if intent == "share" else answers.rank
         kwargs = {"n": n} if intent == "share" else {"unit": unit, "n": n}
-        answer = fn(data, "_ym", chosen["name"], category, store, **kwargs)
-    series = insights.total_series(data, "_ym", chosen["name"])
-    try:
-        fc = forecast.forecast(series, horizon).to_dict()
-        fc_fact = store.add("forecast_mean", fc["mean"][0], unit, f"{insights.ko_month(fc['periods'][0])} 추정 중앙값", period=fc["periods"][0])
-        fc["fact"] = fc_fact.id
-        refusal = None
-    except forecast.NotEnoughData as err:
-        fc, refusal = None, str(err)
+        answer = fn(working, "__jeju_month", "__jeju_value", group, store, **kwargs)
+    series = insights.total_series(working, "__jeju_month", "__jeju_value")
+    fc, refusal = None, "예측 도구를 선택하지 않았어요."
+    if run_forecast:
+        try:
+            fc = forecast.forecast(series, horizon).to_dict()
+            fc_fact = store.add("forecast_mean", fc["mean"][0], unit, f"{insights.ko_month(fc['periods'][0])} 추정 중앙값", period=fc["periods"][0])
+            fc["fact"] = fc_fact.id
+            refusal = None
+        except forecast.NotEnoughData as err:
+            fc, refusal = None, str(err)
     return {
         "dataset": info["dataset"],
         "value": {k: chosen[k] for k in ("name", "ko", "unit", "additive", "note")},
@@ -179,7 +194,7 @@ def join_monthly(left: Dataset, left_value: str, right: Dataset, right_value: st
     frames = []
     for ds, value in ((left, left_value), (right, right_value)):
         info = understand(ds)
-        data = ingest.load(ds.path).data
+        data = read_dataset(ds).data
         data[value] = pd.to_numeric(data[value], errors="coerce")
         data["base_year_month"] = data[info["time_column"]].map(aggregate.to_month)
         frames.append(data.groupby("base_year_month", as_index=False)[value].sum(min_count=1))
@@ -192,7 +207,7 @@ def join_monthly(left: Dataset, left_value: str, right: Dataset, right_value: st
         "left": _ds_dict(left),
         "right": _ds_dict(right),
         "report": report.to_dict(),
-        "rows": merged.fillna("").to_dict(orient="records"),
+        "rows": merged.astype(object).fillna("").to_dict(orient="records"),
         "facts": {fact.id: fact.to_dict()},
         "note": "상관은 함께 움직이는 정도일 뿐 원인을 뜻하지 않아요.",
     }

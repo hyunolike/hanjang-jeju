@@ -104,7 +104,7 @@ export function Stat({ label, value, tone }: { label: string; value: ReactNode; 
 export function CtaBar({ children }: { children: ReactNode }) {
   return (
     <div className="no-print sticky bottom-0 z-10 -mx-4 mt-8 bg-gradient-to-t from-background via-background/95 to-transparent px-4 pt-6 pb-6 sm:-mx-6 sm:px-6">
-      <div className="flex gap-3">{children}</div>
+      <div className="cta-actions">{children}</div>
     </div>
   )
 }

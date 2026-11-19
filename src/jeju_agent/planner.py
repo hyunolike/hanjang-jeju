@@ -106,7 +106,7 @@ def context(ds: pipeline.Dataset) -> Context:
     # 이름 열(…_nm)이 있으면 같은 짝의 코드 열(…_cd)은 후보에서 뺀다. 사람은 이름으로 묻는다.
     names = {c["name"] for c in groups}
     groups = [c for c in groups if not (c["name"].endswith("_cd") and c["name"][:-3] + "_nm" in names)]
-    data = ingest.load(ds.path).data
+    data = pipeline.read_dataset(ds).data
     uniques = {c["name"]: sorted(data[c["name"]].dropna().astype(str).unique().tolist()) for c in groups}
     return Context(ds, info, measures, groups, uniques)
 
