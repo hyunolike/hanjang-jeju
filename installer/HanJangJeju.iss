@@ -10,6 +10,8 @@
 
 [Setup]
 AppId={{6B1E2C7A-3F2D-4C1B-9E5A-0D6F8A2B7C11}
+; 프로그램(App.xaml.cs)이 같은 이름의 mutex를 쥔다. 설치/제거 때 실행 중이면 닫아 달라고 안내한다(P03).
+AppMutex=HanJangJeju.SingleInstance
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppName}

@@ -82,7 +82,7 @@ jobs:
           Stop-Process $p.Id
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
       - name: Windows 프로그램과 설치 파일
         run: |
           dotnet publish windows/HanJangJeju -c Release -o output/app
@@ -102,6 +102,34 @@ jobs:
           do { Start-Sleep 1; try { $h = Invoke-RestMethod http://127.0.0.1:8798/api/health } catch { $h = $null } } until ($h -or $sw.Elapsed.TotalSeconds -gt 120)
           if (-not $h) { throw "설치된 엔진이 켜지지 않았어요" }
           Stop-Process $p.Id
+      - name: 단일 실행 검사 (P03)
+        run: |
+          $app = "$env:LOCALAPPDATA\Programs\HanJangJeju"
+          $ws = "$env:LOCALAPPDATA\HanJangJeju\workspace"
+          $first = Start-Process "$app\HanJangJeju.exe" -PassThru
+          try {
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            do {
+              Start-Sleep 1
+              $engine = Get-Process jeju-engine -ErrorAction SilentlyContinue | Select-Object -First 1
+              $listen = if ($engine) { Get-NetTCPConnection -OwningProcess $engine.Id -State Listen -ErrorAction SilentlyContinue } else { $null }
+            } until ($listen -or $sw.Elapsed.TotalSeconds -gt 120)
+            if (-not $listen) { throw "첫 실행이 엔진을 켜지 않았어요" }
+            New-Item -ItemType Directory -Force $ws | Out-Null
+            Set-Content "$ws\keep.csv" "a`n1"
+            $second = Start-Process "$app\HanJangJeju.exe" -PassThru
+            $null = $second.Handle  # 종료 코드를 읽을 수 있게 핸들을 잡아 둔다
+            if (-not $second.WaitForExit(15000)) { throw "두 번째 실행이 끝나지 않았어요" }
+            if ($second.ExitCode -ne 0) { throw "두 번째 실행의 종료 코드가 $($second.ExitCode)예요" }
+            Start-Sleep 3
+            $engines = @(Get-Process jeju-engine -ErrorAction SilentlyContinue).Count
+            $windows = @(Get-Process HanJangJeju -ErrorAction SilentlyContinue).Count
+            if ($engines -ne 1 -or $windows -ne 1) { throw "엔진 $engines개, 프로그램 $windows개가 떠 있어요(각 1개여야 해요)" }
+            if (-not (Test-Path "$ws\keep.csv")) { throw "두 번째 실행이 작업 폴더를 지웠어요" }
+            "단일 실행 확인: 두 번째 실행은 $($second.ExitCode)로 끝났고 엔진은 1개예요"
+          } finally {
+            Stop-Process $first.Id -Force -ErrorAction SilentlyContinue
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: windows
@@ -133,7 +161,7 @@ jobs:
           python-version: "3.11"
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
       - name: 앱과 dmg 만들기
         run: |
           uv sync --frozen

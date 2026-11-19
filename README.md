@@ -115,7 +115,7 @@ Windows는 WPF와 WebView2, Mac은 Photino와 WKWebView로 창을 엽니다. 두
 <details>
 <summary>소스에서 실행하고 빌드하기</summary>
 
-Python 3.11 이상과 uv, Node.js 22와 pnpm 10이 필요합니다. 앱 빌드에는 .NET 9, Windows 설치판에는 Inno Setup이 추가로 필요합니다.
+Python 3.11 이상과 uv, Node.js 22와 pnpm 10이 필요합니다. 앱 빌드에는 .NET 10, Windows 설치판에는 Inno Setup이 추가로 필요합니다.
 
 ```bash
 uv sync --frozen

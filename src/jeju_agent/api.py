@@ -9,8 +9,10 @@ import re
 import shutil
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 import json
 import os
@@ -21,6 +23,29 @@ from pydantic import BaseModel
 from . import llm, paths, pipeline, planner, privacy
 
 app = FastAPI(title="제주 센터 데이터 분석 에이전트", docs_url="/api/docs")
+
+# 이 엔진은 이용자의 브라우저에서도 열리므로(--open), 같은 브라우저의 다른 사이트가 요청을 보낼 수 있다.
+# 1) Host 허용 목록(P01): DNS rebinding으로 다른 이름을 달고 온 요청은 400.
+# 2) 출처 검사(P02): 다른 출처 화면이 보낸 상태 변경 요청은 403. 헤더가 없는 실행기 요청은 허용한다.
+LOCAL_HOSTS = ["127.0.0.1", "localhost"]
+_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+@app.middleware("http")
+async def _same_origin_only(request: Request, call_next):
+    if request.method not in _SAFE_METHODS:
+        site = request.headers.get("sec-fetch-site")
+        origin = request.headers.get("origin")
+        host = request.headers.get("host", "")
+        if (site is not None and site not in {"same-origin", "none"}) or (
+            origin is not None and origin != f"http://{host}"
+        ):
+            return JSONResponse({"detail": "다른 사이트에서 온 요청은 받지 않아요."}, status_code=403)
+    return await call_next(request)
+
+
+# 나중에 붙인 미들웨어가 먼저 실행된다. Host 검사가 출처 검사보다 앞선다.
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=LOCAL_HOSTS)
 _warm = {"ready": False}
 _model = {"ready": False, "checked": False, "reason": "", "warming": False}
 _startup = {"cleared": 0}
