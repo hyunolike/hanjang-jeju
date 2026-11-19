@@ -24,6 +24,11 @@
 
   <ItemGroup>
     <Resource Include="logo.png" />
+    <!-- 시작 화면 글꼴. 웹 화면(Pretendard)과 같게 맞춘다. SIL OFL 1.1이므로 라이선스 파일을 함께 배포한다. -->
+    <Resource Include="Fonts\Pretendard-Regular.otf" />
+    <Resource Include="Fonts\Pretendard-SemiBold.otf" />
+    <Resource Include="Fonts\Pretendard-Bold.otf" />
+    <None Include="Fonts\Pretendard-OFL.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

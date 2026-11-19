@@ -6,22 +6,26 @@
         WindowStartupLocation="CenterScreen" Background="{StaticResource Grey100}"
         FontFamily="{StaticResource UiFont}">
   <Grid>
-    <!-- 엔진이 켜지는 동안의 안내 화면. 토스처럼 한 문장과 진행 표시만 둔다. -->
+    <!-- 엔진이 켜지는 동안의 시작 화면. 한 문장, 진행 표시, 필요할 때만 큰 버튼 하나.
+         문장은 단계에 따라 바뀐다(엔진 켜기 → 화면 준비). 오래 걸리면 보조 문장이 바뀐다. -->
     <Grid x:Name="Splash">
-      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="420">
-        <Image Source="logo.png" Width="72" Height="72" Margin="0,0,0,24" />
+      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="400">
+        <Image Source="logo.png" Width="64" Height="64" Margin="0,0,0,28"
+               RenderOptions.BitmapScalingMode="HighQuality" />
         <TextBlock x:Name="SplashTitle" Text="분석 엔진을 켜고 있어요" FontSize="26" FontWeight="Bold"
-                   Foreground="{StaticResource Grey900}" TextAlignment="Center" />
+                   Foreground="{StaticResource Grey900}" TextAlignment="Center" TextWrapping="Wrap" />
         <TextBlock x:Name="SplashSub" Text="처음 켤 때는 30초쯤 걸려요. 인터넷 없이 이 PC 안에서만 동작해요."
-                   FontSize="15" Foreground="{StaticResource Grey600}" TextWrapping="Wrap"
-                   TextAlignment="Center" Margin="0,12,0,28" />
-        <ProgressBar x:Name="SplashProgress" IsIndeterminate="True" Height="6" Foreground="{StaticResource Teal500}"
-                     Background="#E5E8EB" BorderThickness="0" />
-        <Button x:Name="RetryButton" Content="다시 시도" Visibility="Collapsed" Margin="0,28,0,0" Height="52"
-                FontSize="17" FontWeight="SemiBold" Foreground="White" Background="{StaticResource Teal500}"
-                BorderThickness="0" Click="Retry_Click" />
+                   FontSize="16" LineHeight="24" Foreground="{StaticResource Grey700}" TextWrapping="Wrap"
+                   TextAlignment="Center" Margin="0,12,0,32" />
+        <ProgressBar x:Name="SplashProgress" IsIndeterminate="True" Height="6" Width="240"
+                     Foreground="{StaticResource Teal500}" Background="{StaticResource Grey200}" BorderThickness="0" />
+        <Button x:Name="RetryButton" Content="다시 시도" Visibility="Collapsed" Margin="0,8,0,0"
+                Style="{StaticResource PrimaryButton}" Click="Retry_Click" />
+        <Button x:Name="LogButton" Content="기록 폴더 열기" Visibility="Collapsed" Margin="0,8,0,0"
+                HorizontalAlignment="Center" Style="{StaticResource TextButton}" Click="Log_Click" />
       </StackPanel>
     </Grid>
+    <!-- 페이지가 다 그려진 뒤에 보인다. 그 전에 보이면 흰 바탕이 잠깐 번쩍인다. -->
     <wv2:WebView2 x:Name="Web" Visibility="Collapsed" />
   </Grid>
 </Window>

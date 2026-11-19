@@ -33,12 +33,26 @@ Compression=lzma2/fast
 SolidCompression=no
 DiskSpanning=no
 WizardStyle=modern
+; 설치 마법사 그림: 왼쪽 큰 그림(비율 164:314)과 오른쪽 위 작은 그림(정사각). 화면 배율에 가장 맞는 크기를 Setup이 고른다.
+; 모든 Inno Setup 6 버전에서 읽히도록 24비트 BMP를 쓴다. 원본 로고: assets/brand/logo-v2.png
+WizardImageFile=wizard\large-164x314.bmp,wizard\large-202x386.bmp,wizard\large-336x643.bmp,wizard\large-430x824.bmp
+WizardSmallImageFile=wizard\small-58.bmp,wizard\small-97.bmp,wizard\small-124.bmp
 
 [Languages]
 Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 
 [Messages]
-korean.FinishedLabel=AI 팩을 설치했어요. 한 장 제주를 다시 켜면 점검 화면에 "로컬 AI 준비됨"이 보여요. 처음 켤 때 모델을 불러오느라 1분쯤 걸릴 수 있어요.
+; 앱 설치 프로그램과 같은 해요체. 이 팩은 고를 것이 없어 '준비 완료' 화면을 확인 화면으로 남긴다.
+korean.SetupWindowTitle=%1 설치
+korean.WizardReady=AI 팩을 설치할 준비가 됐어요
+korean.ReadyLabel1=질문을 알아듣는 로컬 AI를 이 PC에 넣어요. 인터넷으로 아무것도 보내지 않아요.
+korean.ReadyLabel2b=[설치]를 누르면 시작해요.
+korean.WizardInstalling=설치하고 있어요
+korean.InstallingLabel=AI 모델이 커서 몇 분 걸릴 수 있어요. 창을 닫지 말고 기다려 주세요.
+korean.FinishedHeadingLabel=AI 팩을 설치했어요
+korean.ClickFinish=[마침]을 누르면 이 창이 닫혀요.
+korean.ExitSetupMessage=설치가 아직 끝나지 않았어요. 지금 그만두면 AI 팩이 설치되지 않아요.%n%n그래도 그만둘까요?
+korean.FinishedLabel=한 장 제주를 다시 켜면 점검 화면에 "로컬 AI 준비됨"이 보여요. 처음 켤 때 모델을 불러오느라 1분쯤 걸릴 수 있어요.
 
 [InstallDelete]
 ; 이전 팩의 서버 DLL과 모델을 먼저 지운다. llama.cpp는 서버 옆의 ggml-*.dll을 모두 읽어 들이므로

@@ -3,10 +3,81 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnMainWindowClose">
   <Application.Resources>
+    <!-- 색은 web/src/index.css의 디자인 토큰과 같은 값이다. -->
     <SolidColorBrush x:Key="Grey100" Color="#F2F4F6" />
+    <SolidColorBrush x:Key="Grey200" Color="#E5E8EB" />
     <SolidColorBrush x:Key="Grey600" Color="#6B7684" />
+    <!-- Grey100 바탕 위 보조 글자용. 대비 6.45:1 (Grey600은 4.19:1로 WCAG AA 미달) -->
+    <SolidColorBrush x:Key="Grey700" Color="#4E5968" />
     <SolidColorBrush x:Key="Grey900" Color="#191F28" />
     <SolidColorBrush x:Key="Teal500" Color="#0E7C86" />
-    <FontFamily x:Key="UiFont">Malgun Gothic, Segoe UI</FontFamily>
+    <SolidColorBrush x:Key="Teal600" Color="#0A626A" />
+    <SolidColorBrush x:Key="Teal700" Color="#08545B" />
+
+    <!-- 웹 화면과 같은 Pretendard를 실행 파일에 넣어, 시작 화면에서 앱으로 넘어갈 때 글자 모양이 바뀌지 않게 한다.
+         글꼴이 없으면 맑은 고딕으로 대신한다. 라이선스: Fonts/Pretendard-OFL.txt -->
+    <FontFamily x:Key="UiFont">./Fonts/#Pretendard, Malgun Gothic, Segoe UI</FontFamily>
+
+    <!-- 화면 아래의 큰 주 버튼. 디자인 시스템의 "할 일은 큰 버튼 하나" 규칙(높이 56, 모서리 16). -->
+    <Style x:Key="PrimaryButton" TargetType="Button">
+      <Setter Property="Height" Value="56" />
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Background" Value="{StaticResource Teal500}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Box" CornerRadius="16" Background="{TemplateBinding Background}"
+                    BorderBrush="Transparent" BorderThickness="2">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Box" Property="Background" Value="{StaticResource Teal600}" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Box" Property="Background" Value="{StaticResource Teal700}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Grey900}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 보조 행동은 글자 버튼으로 낮춘다. 주 버튼과 경쟁하지 않게 색 없이 회색 글자만 쓴다. -->
+    <Style x:Key="TextButton" TargetType="Button">
+      <Setter Property="Height" Value="44" />
+      <Setter Property="Padding" Value="16,0" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource Grey700}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Box" CornerRadius="12" Background="{TemplateBinding Background}"
+                    Padding="{TemplateBinding Padding}" BorderBrush="Transparent" BorderThickness="2">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Box" Property="Background" Value="{StaticResource Grey200}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Teal500}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
   </Application.Resources>
 </Application>

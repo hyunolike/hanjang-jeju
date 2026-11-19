@@ -1,2 +1,4 @@
 data/hub/*.csv -text
 data/reference/*.xlsx binary
+installer/wizard/*.bmp binary
+windows/HanJangJeju/Fonts/*.otf binary
