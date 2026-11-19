@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Python/설치판과 같은 [project].version을 읽는다. 별도 버전 숫자를 두지 않는다. -->
+    <_ProjectVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)pyproject.toml')), '(?ms)^\[project\][^\r\n]*\r?\n(?:(?!^\[).)*?^version[ \t]*=[ \t]*[\x22\x27]((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))[\x22\x27][ \t]*(?:#[^\r\n]*)?\r?$').Groups[1].Value)</_ProjectVersion>
+    <Version>$(_ProjectVersion)</Version>
+  </PropertyGroup>
+  <Target Name="ValidateProjectVersion" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(_ProjectVersion)' == ''" Text="pyproject.toml의 [project].version에 안정판 X.Y.Z가 필요합니다." />
+  </Target>
+</Project>

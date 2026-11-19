@@ -85,7 +85,9 @@ Windows와 Mac은 창을 띄우는 껍데기만 다르고, 같은 분석 엔진�
 
 ## 소스에서 빌드
 
-이 저장소의 소스는 개발 원본의 main 변경 뒤 자동으로 반영됩니다. 설치 파일은 새 Release를 만들 때 갱신되므로 최신 소스와 설치판의 내용이 다를 수 있습니다.
+이 저장소의 소스는 개발 원본의 main 변경 뒤 자동으로 반영됩니다. pyproject.toml에 새 버전이 들어오면 태그 생성과 설치판 검사를 거쳐 Release가 자동으로 공개됩니다. 버전이 같은 소스 수정은 설치판을 새로 출시하지 않습니다.
+
+Windows와 Mac의 버전은 pyproject.toml의 project.version을 함께 사용합니다. Windows 설치판을 직접 빌드할 때는 `uv run python scripts/release_version.py`의 출력값을 APP_VERSION 환경변수로 설정합니다. Mac 빌드 스크립트는 자동으로 읽습니다.
 
 Python 3.11과 [uv](https://docs.astral.sh/uv/), Node 22와 pnpm, .NET 9가 필요합니다.
 

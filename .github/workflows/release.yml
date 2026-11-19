@@ -10,11 +10,36 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   JEJU_PUBLIC: "1"
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 버전과 태그 검사
+        id: version
+        shell: bash
+        run: |
+          args=()
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then args+=(--check-tag "$GITHUB_REF_NAME"); fi
+          version=$(python3 scripts/release_version.py "${args[@]}")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
   windows:
+    needs: version
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
     runs-on: windows-latest
     timeout-minutes: 60
     defaults:
@@ -84,6 +109,9 @@ jobs:
           retention-days: 14
 
   mac:
+    needs: version
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -126,10 +154,15 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [windows, mac]
+    needs: [version, windows, mac]
     runs-on: ubuntu-latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -144,4 +177,4 @@ jobs:
           mv HanJangJeju-*-arm64.dmg HanJangJeju-mac-arm64.dmg
           mv HanJangJeju-*-x64.dmg HanJangJeju-mac-x64.dmg
           sha256sum * > SHA256SUMS.txt && ls -la && cd ..
-          gh release create "$GITHUB_REF_NAME" dist/* --title "한 장 제주 $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+          bash scripts/publish_release.sh dist

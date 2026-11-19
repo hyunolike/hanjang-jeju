@@ -11,7 +11,6 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <Product>한 장 제주</Product>
     <Company>한 장 제주</Company>
-    <Version>1.0.0</Version>
     <!-- Mac이나 Linux에서도 컴파일 확인을 할 수 있게 한다. 실행은 Windows에서만 된다. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

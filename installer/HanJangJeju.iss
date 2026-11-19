@@ -5,7 +5,7 @@
 #define AppName "한 장 제주"
 #define AppVersion GetEnv("APP_VERSION")
 #if AppVersion == ""
-  #define AppVersion "1.0.0"
+  #error "APP_VERSION must be read from pyproject.toml before building the installer"
 #endif
 
 [Setup]

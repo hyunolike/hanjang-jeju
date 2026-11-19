@@ -6,7 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>HanJangJeju</AssemblyName>
     <RootNamespace>HanJangJeju.Mac</RootNamespace>
-    <Version>1.0.0</Version>
     <SelfContained>true</SelfContained>
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>

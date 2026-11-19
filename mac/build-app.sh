@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Mac 앱(.app)과 설치 이미지(.dmg)를 만든다.
 # 사용(저장소 루트): mac/build-app.sh            # 이 Mac의 칩(arm64 또는 x64)용
-# 결과: output/mac/HanJangJeju.app, output/mac/HanJangJeju-1.0.0-<arch>.dmg
+# 결과: output/mac/HanJangJeju.app, output/mac/HanJangJeju-<project.version>-<arch>.dmg
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VERSION="${APP_VERSION:-1.0.0}"
+VERSION=$(uv run python scripts/release_version.py)
+[ "${APP_VERSION:-$VERSION}" = "$VERSION" ] || { echo "APP_VERSION과 pyproject.toml 버전이 달라요" >&2; exit 1; }
 case "$(uname -m)" in arm64) ARCH=arm64 ;; *) ARCH=x64 ;; esac
 OUT=output/mac
 APP="$OUT/HanJangJeju.app"
