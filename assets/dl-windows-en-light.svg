@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="264" height="64" viewBox="0 0 264 64" role="img" aria-labelledby="title desc">
+<title id="title">Download for Windows</title>
+<desc id="desc">Windows 10/11 (64-bit)</desc>
+<g font-family="'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
+<rect x="0" y="0" width="264" height="64" rx="16" fill="#0E7C86" /><g role="img"><title>Windows</title><rect x="20" y="20" width="11.0" height="11.0" rx="0" fill="#FFFFFF" /><rect x="20" y="33.0" width="11.0" height="11.0" rx="0" fill="#FFFFFF" /><rect x="33.0" y="20" width="11.0" height="11.0" rx="0" fill="#FFFFFF" /><rect x="33.0" y="33.0" width="11.0" height="11.0" rx="0" fill="#FFFFFF" /></g><text x="56" y="27" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="start" data-max-width="164">Windows</text><text x="56" y="47" font-size="13" font-weight="500" fill="#FFFFFF" text-anchor="start" data-max-width="164">Windows 10/11 (64-bit)</text><path d="M234 22v16m-6-6 6 6 6-6M226 42h16" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+</g>
+</svg>

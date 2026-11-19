@@ -8,6 +8,12 @@
 
 <p align="center"><a href="https://hanjang-jeju.hyunolike.dev">Try the web demo</a> · <a href="#get-started">Download for desktop</a> · <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest">Latest release</a></p>
 
+<p align="center">
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-Setup-windows-x64.exe"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-windows-en-dark.svg"><img src="assets/dl-windows-en-light.svg" width="264" alt="Download for Windows"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-arm64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-arm64-en-dark.svg"><img src="assets/dl-mac-arm64-en-light.svg" width="264" alt="Download for Mac with Apple silicon"></picture></a>
+  <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest/download/HanJangJeju-mac-x64.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dl-mac-x64-en-dark.svg"><img src="assets/dl-mac-x64-en-light.svg" width="264" alt="Download for Mac with Intel"></picture></a>
+</p>
+
 HanJang Jeju turns CSV files from the Jeju Big Data Center into a report you can print or save as a PDF. Review column meanings, missing values, subtotals and units before exploring changes. Analysis cards link their numbers to supporting facts.
 
 **Desktop analysis runs on your computer.** The web demo sends uploaded CSV files to a server for analysis. Use the desktop app for data that must stay on your PC.
