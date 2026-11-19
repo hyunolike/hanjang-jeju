@@ -22,9 +22,9 @@
 
 ## 소개 영상
 
-<p align="center"><img src="assets/intro.gif" width="840" alt="한 장 제주 22초 소개 영상: CSV 이해, 자동 분석, 질문과 답, 결과 한 장"></p>
+https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 
-<p align="center"><sub>소리가 있는 영상은 <a href="https://github.com/hyunolike/hanjang-jeju/raw/main/assets/intro.mp4">intro.mp4</a>로 내려받아 볼 수 있어요 (22초, 2.8MB)</sub></p>
+<p align="center"><sub>22초 소개 영상이에요. 재생 버튼을 누르면 소리와 함께 볼 수 있어요. 영상이 보이지 않으면 <a href="https://github.com/hyunolike/hanjang-jeju/raw/main/assets/intro.mp4">intro.mp4</a>로 내려받아 보세요.</sub></p>
 
 ## 내려받기
 
