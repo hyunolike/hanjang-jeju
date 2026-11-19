@@ -223,6 +223,10 @@ def build(platform: str, out: Path, cache: Path, crt_dir: Path | None = None) ->
 
 
 def main(argv: list[str]) -> None:
+    # Windows 러너는 파이프 출력이 cp1252라 한국어 안내를 쓰지 못하고 멈춘다(v1.0.2 출시 실패). UTF-8로 쓴다.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("platform", help="windows-x64, macos-arm64, macos-x64")
     parser.add_argument("--out", type=Path, default=ROOT / "output/ai-pack")

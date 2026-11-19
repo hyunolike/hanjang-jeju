@@ -135,6 +135,9 @@ jobs:
           path: output/ai-pack-cache
           key: ai-pack-${{ hashFiles('packaging/ai-pack/sources.json') }}
       - name: AI 팩 만들고 설치해 계획 검사 (M06)
+        env:
+          # 러너의 파이프 출력은 cp1252다. 한국어 출력이 멈추지 않게 Python을 UTF-8 모드로 쓴다.
+          PYTHONUTF8: "1"
         run: |
           # VC++ 재배포 패키지가 없는 새 PC에서도 켜지도록 러너의 Visual Studio 재배포 폴더에서 x64 CRT를 넣는다(M6)
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath

@@ -296,7 +296,10 @@ class _WindowsJob:
                 raise OSError(ctypes.get_last_error(), "AssignProcessToJobObject")
         except OSError as err:
             # 묶지 못해도 정상 종료 때는 stop()이 끈다. 원인은 엔진 기록에 남긴다.
-            print(f"AI 팩 서버를 Job Object에 묶지 못했어요: {err}", file=sys.stderr, flush=True)
+            try:
+                print(f"AI 팩 서버를 Job Object에 묶지 못했어요: {err}", file=sys.stderr, flush=True)
+            except (UnicodeError, OSError, ValueError):
+                pass  # 콘솔이 한국어를 못 쓰거나 닫혀 있어도 서버 관리를 계속한다
 
 
 _windows_job = _WindowsJob()
