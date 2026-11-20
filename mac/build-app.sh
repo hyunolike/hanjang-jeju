@@ -64,7 +64,17 @@ make_dmg() { # $1 앱 묶음, $2 결과 dmg
   rm -rf "$stage" && mkdir -p "$stage"
   cp -R "$1" "$stage/"
   ln -s /Applications "$stage/Applications"
-  hdiutil create -volname "한 장 제주" -srcfolder "$stage" -ov -format UDZO "$2" >/dev/null
+  # GitHub macOS 실행기에서 hdiutil이 "Resource busy"로 간헐적으로 실패한다(v1.0.5 출시 실행 #44725226025).
+  # 디스크 이미지 장치가 풀릴 시간을 두고 세 번까지 다시 시도한다.
+  local try
+  for try in 1 2 3; do
+    if hdiutil create -volname "한 장 제주" -srcfolder "$stage" -ov -format UDZO "$2" >/dev/null; then
+      break
+    fi
+    if [ "$try" = 3 ]; then echo "dmg를 만들지 못했어요: $2" >&2; exit 1; fi
+    echo "hdiutil 실패, ${try}번째 재시도 전에 15초 기다려요" >&2
+    sleep 15
+  done
   rm -rf "$stage"
 }
 
