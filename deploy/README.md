@@ -2,9 +2,10 @@
 
 2026-11-21 Vercel 402로 중단된 공개 웹을 Render Free로 이전했다.
 
-- 이용 주소: https://hanjang-jeju.onrender.com
-- 상태: https://hanjang-jeju.onrender.com/api/web/health
-- 모델 상태: https://hanjang-jeju.onrender.com/api/web/capabilities
+- 이용 주소: https://hanjang-jeju.hyunolike.dev
+- 보조 주소: https://hanjang-jeju.onrender.com
+- 상태: https://hanjang-jeju.hyunolike.dev/api/web/health
+- 모델 상태: https://hanjang-jeju.hyunolike.dev/api/web/capabilities
 - 서비스: srv-dc0p4lks728c73av4vc0 / Singapore / Free / 단일 인스턴스
 - 운영 배포: dep-dc0p4m4s728c73av50jg / 애플리케이션 커밋 1e17f11b6e9267f61a7c578589714a02232a4fdd
 
@@ -18,11 +19,13 @@ Render HTTPS 주소에서 가상 CSV 96행/48개월의 합계 48개가 별도 �
 
 공개 HTML/JS/CSS/예시 목록 해시가 기존 사본과 일치하고 예시 9개가 제공된다. 로컬 Linux 컨테이너에서도 512MB 제한으로 같은 계산과 AI 경로를 통과했다. 분석 후 메모리는 약 173MiB였다. 이는 Render의 실제 최대 메모리 측정값이 아니다. 새 배포의 모바일/인쇄 브라우저 회귀 전체는 다시 실행하지 않았다.
 
-## 기존 도메인 연결 대기
+## 기존 도메인 연결
 
-`hanjang-jeju.hyunolike.dev`는 Render에 등록했지만 unverified다. Vercel DNS 생성은 연결 도구와 같은 팀 CLI 모두에서 402 `Your Team exceeded our fair use limits and has been blocked`로 거부됐다. DNS 변경은 적용하지 않았다. 원래 hyunolike.dev의 `*` ALIAS는 `cname.vercel-dns-017.com.`이며 hanjang-jeju 전용 레코드는 없었다.
+Vercel 팀 차단 원인은 `edgeConfigRead`의 무료 한도 초과였다. 공식 지원 화면에서 일회 무료 유예를 적용했고, 팀 API의 `softBlock=null`, `blocked=null`, `billing.plan=hobby`를 확인했다. 유료 전환 없이 한도가 30일간 3배로 늘어난 조치다. 한도를 초과한 실제 Reader Project는 아직 확인하지 못했다.
 
-Vercel 팀 제한 해제 후 `hanjang-jeju`의 CNAME 하나를 `hanjang-jeju.onrender.com.`으로 추가한다(TTL 60). 다른 서비스의 와일드카드 DNS는 수정하지 않는다. Render 도메인 검증/TLS 발급과 사용자 도메인의 HTTPS 메인/실제 분석을 검사한 뒤 대표 주소로 사용한다. 현재 이용 주소는 Render 기본 주소다.
+`hanjang-jeju`의 CNAME 하나를 `hanjang-jeju.onrender.com.`으로 추가했다(TTL 60, 레코드 `rec_d34c9949a72ba8768a329130`). 기존 5개 DNS 레코드는 보존했다. Render 사용자 도메인 `cdm-dc0p8o4s728c73avggk0`은 verified이며 TLS 발급도 완료됐다. 권한 DNS와 Google Public DNS에서 새 CNAME을 확인했다. 일부 시스템 DNS에는 기존 Vercel 주소가 캐시되어 있어 전파 중에는 이전 Vercel 화면에 도달할 수 있다. 일반 접속도 차단 해제 후 HTTPS 200을 반환했다.
+
+Render IP를 지정한 검사에서도 Host/SNI와 인증서 검증은 사용자 도메인으로 유지했다(TLS 검증 결과 0, HTTP 200, `x-render-origin-server: uvicorn`). 이 경로에서 가상 96행/48개월 합계와 3개월 예측 및 검증을 통과했다. understand 0.91초, analyze 10.37초, 실제 Cloudflare plan 2.65초, 확인 후 Agent analyze 1.31초였다. PC 전용 API는 404이며 HTML/JS/CSS와 공개 예시 목록 해시 및 예시 9개도 일치했다.
 
 ## 무료 운영과 다음 배포
 
