@@ -150,6 +150,7 @@ const serverApi = {
     if (o.filters?.length) q.set("filters", JSON.stringify(o.filters))
     if (o.period_n) q.set("period_n", String(o.period_n))
     if (o.horizon) q.set("horizon", String(o.horizon))
+    q.set("run_forecast", String(o.run_forecast ?? (o.intent === "forecast")))
     return get<Analysis>(`/api/datasets/${id}/analyze?${q}`)
   },
   model: () => get<ModelStatus>("/api/model"),

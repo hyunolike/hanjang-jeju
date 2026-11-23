@@ -58,8 +58,12 @@ def compare(data: pd.DataFrame, time: str, value: str, store: FactStore, unit: s
         store.add("level", before, unit, f"{_span(before_start, before_end)} 합계", period=f"{before_start}~{before_end}"),
         store.add("change_pct", round(pct, 1), "%", f"최근 {n}개월, 그 전 {n}개월 대비"),
     ]
-    word = "늘었어요" if pct > 0 else "줄었어요"
-    return Answer("compare", f"최근 {n}개월은 그 전 {n}개월보다 {abs(round(pct, 1))}% {word}", facts, warnings)
+    if pct == 0:
+        title = f"최근 {n}개월은 그 전 {n}개월과 비교해 변화가 없어요"
+    else:
+        word = "늘었어요" if pct > 0 else "줄었어요"
+        title = f"최근 {n}개월은 그 전 {n}개월보다 {abs(round(pct, 1))}% {word}"
+    return Answer("compare", title, facts, warnings)
 
 
 def _recent(data: pd.DataFrame, time: str, n: int) -> tuple[pd.DataFrame, str]:

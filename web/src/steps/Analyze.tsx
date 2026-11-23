@@ -2,7 +2,7 @@ import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts"
 import { BarChart3, CalendarRange, CalendarX, Lightbulb, TrendingUp } from "lucide-react"
-import { api, WEB_UPLOAD, type Analysis, type AnalyzeOptions, type Card, type Dataset } from "@/lib/api"
+import { api, STATIC, WEB_UPLOAD, type Analysis, type AnalyzeOptions, type Card, type Dataset } from "@/lib/api"
 import { WebAskPanel } from "./WebAskPanel"
 import { canOfferForecast } from "@/lib/selection"
 import { BigTitle, CtaBar, Illust, Panel, Pill, Stat } from "@/components/kit"
@@ -61,7 +61,9 @@ export function Analyze({
 
   const unit = a.value.unit
   const lead = a.cards[0]
-  const offerForecast = uploaded && canOfferForecast(a)
+  const offerForecast = uploaded
+    ? canOfferForecast(a)
+    : !STATIC && !a.forecast && !choice.run_forecast && choice.intent !== "forecast"
 
   return (
     <div className="space-y-5">
@@ -180,7 +182,7 @@ export function Analyze({
             <div>
               <p className="text-[17px] font-bold">{offerForecast ? "앞으로의 흐름도 볼까요?" : "이번에는 추정하지 않을게요"}</p>
               <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{offerForecast ? "자료가 충분하고 비어 있는 달이 없으면, 앞으로의 범위를 계산해요." : a.forecast_refusal}</p>
-              {offerForecast && <Button className="mt-4" variant="soft" onClick={() => onChange({ value: a.value.name, category: a.category, run_forecast: true })}>예측도 계산하기</Button>}
+              {offerForecast && <Button className="mt-4" variant="soft" onClick={() => onChange({ ...choice, value: a.value.name, category: a.category, run_forecast: true })}>예측도 계산하기</Button>}
             </div>
           </div>
         </Panel>

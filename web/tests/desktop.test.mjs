@@ -41,6 +41,40 @@ function find(node, predicate) {
   return predicate(node) ? node : find(node.props?.children, predicate)
 }
 
+test('local forecast queries default off, explicitly opt in, and support forecast questions', async () => {
+  const requested = []
+  const { api } = component('lib/api.ts', { './upload': {} }, { fetch: async url => { requested.push(new URL(url, 'http://localhost')); return new Response('{}') } })
+  await api.analyze('upload-local')
+  await api.analyze('upload-local', { run_forecast: true })
+  await api.analyze('upload-local', { intent: 'forecast' })
+  await api.analyze('upload-local', { intent: 'forecast', run_forecast: false })
+  assert.deepEqual(requested.map(url => url.searchParams.get('run_forecast')), ['false', 'true', 'true', 'false'])
+})
+
+test('native analysis offers an explicit forecast while preserving the chosen filters', () => {
+  const tags = names => Object.fromEntries(names.map(name => [name, name]))
+  const choice = { value: 'sale_amt', category: 'type_nm', intent: 'share', period_n: 6, filters: [{ column: 'type_nm', values: ['A'] }] }
+  let next
+  const { Analyze } = component('steps/Analyze.tsx', {
+    'react': { useMemo: fn => fn() },
+    '@tanstack/react-query': { useQuery: () => ({ data: { dataset: { title: 'synthetic' }, value: { name: 'sale_amt', ko: '매출', unit: '원' }, category: 'type_nm', options: { values: ['sale_amt'], categories: ['type_nm'] }, labels: {}, series: [], cards: [], facts: {}, forecast: null, forecast_refusal: '예측 도구를 선택하지 않았어요.', missing_months: [], filters: choice.filters } }) },
+    '@/lib/api': { STATIC: false, WEB_UPLOAD: false, api: {} },
+    '@/lib/selection': selection,
+    '@/components/form': tags(['ActionFeedback']),
+    '@/components/ui/chart': tags(['ChartContainer', 'ChartTooltip', 'ChartTooltipContent']),
+    './WebAskPanel': tags(['WebAskPanel']), './AskPanel': tags(['AskPanel']), './JoinPanel': tags(['JoinPanel']),
+    'recharts': tags(['Area', 'CartesianGrid', 'ComposedChart', 'Line', 'XAxis', 'YAxis']),
+  })
+  const tree = Analyze({ dataset: { id: 'local', source: 'upload' }, choice, onChange: value => { next = value } })
+  const forecastButton = find(tree, n => n.type === 'Button' && n.props.children === '예측도 계산하기')
+  assert.ok(forecastButton, 'native uploads need a separate forecast action')
+  forecastButton.props.onClick()
+  assert.equal(next.run_forecast, true)
+  assert.equal(next.period_n, 6)
+  assert.equal(next.intent, 'share')
+  assert.deepEqual(next.filters, choice.filters)
+})
+
 test('editing a question hides the previous executable plan', async () => {
   const cache = new QueryClient()
   const observer = new MutationObserver(cache, { mutationFn: async () => ({ fallback: false, plan: { intent: 'compare', value: 'sale_amt', group_by: null, filters: [], period_n: 12, horizon: 6 }, unresolved: [], blocked: [], needs: [], unsupported: [], labels: {}, latency_ms: 1 }) })

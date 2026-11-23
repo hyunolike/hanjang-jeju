@@ -219,6 +219,7 @@ def analyze(
     filters: str | None = None,
     period_n: int | None = None,
     horizon: int = 6,
+    run_forecast: bool = True,
 ) -> dict:
     """filters는 JSON 문자열 [{"column":..., "values":[...]}]. 서버가 열과 값을 다시 검증한다."""
     ds = _dataset(dataset_id)
@@ -236,7 +237,7 @@ def analyze(
     if intent not in planner.INTENTS:
         intent = None
     horizon = min(max(int(horizon), 1), 12)
-    return pipeline.analyze(ds, value, category, horizon=horizon, filters=parsed, intent=intent, period_n=period_n)
+    return pipeline.analyze(ds, value, category, horizon=horizon, filters=parsed, intent=intent, period_n=period_n, run_forecast=run_forecast)
 
 
 @app.get("/api/join")
