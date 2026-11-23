@@ -9,7 +9,8 @@
 from __future__ import annotations
 
 import re
-from io import BytesIO
+import csv
+from io import BytesIO, StringIO
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -135,10 +136,20 @@ def _mostly_numeric(series: pd.Series) -> bool:
 
 
 def load(path: str | Path) -> CleanResult:
-    frame, encoding = read_csv(path)
-    return clean(frame, encoding)
+    return load_bytes(Path(path).read_bytes())
 
 
 def load_bytes(raw: bytes) -> CleanResult:
     frame, encoding = read_bytes(raw)
-    return clean(frame, encoding)
+    result = clean(frame, encoding)
+    reader = csv.reader(StringIO(raw.decode(encoding)), strict=True)
+    next(reader)
+    source_lines = []
+    previous = reader.line_num
+    for row in reader:
+        start = previous + 1
+        previous = reader.line_num
+        if row and not (len(row) == 1 and not row[0].strip()):
+            source_lines.append(start)
+    result.source_rows = [source_lines[row - 2] for row in result.source_rows]
+    return result

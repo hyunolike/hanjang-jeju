@@ -34,6 +34,10 @@ def _watch_parent(pid: int) -> None:
         try:
             os.kill(pid, 0)
         except OSError:
+            # os._exit는 atexit를 건너뛰므로 AI 팩 서버를 먼저 끈다(Mac에는 Job Object가 없다).
+            from jeju_agent import aipack
+
+            aipack.stop()
             os._exit(0)
 
 

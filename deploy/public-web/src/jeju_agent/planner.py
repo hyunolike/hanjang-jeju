@@ -248,7 +248,8 @@ def finish(ctx: Context, question: str, raw: dict, **meta) -> dict:
     groups = {c["name"] for c in ctx.groups}
     value = raw.get("value") if raw.get("value") in names else None
     if value is None:
-        value = next((c["name"] for c in ctx.measures if c["additive"]), ctx.measures[0]["name"])
+        selected = (ctx.ds.selection or {}).get("value")
+        value = selected if selected in names else next((c["name"] for c in ctx.measures if c["additive"]), ctx.measures[0]["name"])
     group_by = raw.get("group_by") if raw.get("group_by") in groups else None
     intent = intent_from_question(question, raw.get("intent"))
     # 나눠 보기는 구성비, 순위이거나 질문에 '~별'이 있을 때만. "여성 이용자수 흐름"의 성별은 거르기다.

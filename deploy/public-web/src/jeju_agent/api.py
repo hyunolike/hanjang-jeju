@@ -5,22 +5,63 @@
 
 from __future__ import annotations
 
-import re
-import shutil
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 import json
 import os
 import threading
+import time
+from uuid import uuid4
 
 from pydantic import BaseModel
 
-from . import llm, paths, pipeline, planner, privacy
+from . import aipack, llm, paths, pipeline, planner, privacy, web_input, web_profile
 
-app = FastAPI(title="제주 센터 데이터 분석 에이전트", docs_url="/api/docs")
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    _start_warm_up()
+    try:
+        yield
+    finally:
+        aipack.stop()  # 엔진이 정상 종료하면 AI 팩 서버도 끈다(M02)
+
+
+app = FastAPI(title="제주 센터 데이터 분석 에이전트", docs_url="/api/docs", lifespan=_lifespan)
+
+
+@app.exception_handler(web_input.SelectionError)
+async def invalid_selection(request, exc):
+    return JSONResponse({"detail": exc.detail, "issue": exc.issue}, status_code=exc.status_code)
+
+# 이 엔진은 이용자의 브라우저에서도 열리므로(--open), 같은 브라우저의 다른 사이트가 요청을 보낼 수 있다.
+# 1) Host 허용 목록(P01): DNS rebinding으로 다른 이름을 달고 온 요청은 400.
+# 2) 출처 검사(P02): 다른 출처 화면이 보낸 상태 변경 요청은 403. 헤더가 없는 실행기 요청은 허용한다.
+LOCAL_HOSTS = ["127.0.0.1", "localhost"]
+_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+@app.middleware("http")
+async def _same_origin_only(request: Request, call_next):
+    if request.method not in _SAFE_METHODS:
+        site = request.headers.get("sec-fetch-site")
+        origin = request.headers.get("origin")
+        host = request.headers.get("host", "")
+        if (site is not None and site not in {"same-origin", "none"}) or (
+            origin is not None and origin != f"http://{host}"
+        ):
+            return JSONResponse({"detail": "다른 사이트에서 온 요청은 받지 않아요."}, status_code=403)
+    return await call_next(request)
+
+
+# 나중에 붙인 미들웨어가 먼저 실행된다. Host 검사가 출처 검사보다 앞선다.
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=LOCAL_HOSTS)
 _warm = {"ready": False}
 _model = {"ready": False, "checked": False, "reason": "", "warming": False}
 _startup = {"cleared": 0}
@@ -40,7 +81,6 @@ def _warm_up() -> None:
         _warm["ready"] = True
 
 
-@app.on_event("startup")
 def _start_warm_up() -> None:
     import os
     import threading
@@ -48,6 +88,12 @@ def _start_warm_up() -> None:
     # 지난번에 창을 닫지 못하고 꺼졌다면 남은 작업을 여기서 지운다(자동 삭제가 켜져 있을 때).
     if os.environ.get("JEJU_KEEP_WORKSPACE") != "1":
         _startup["cleared"] = privacy.clear_if_auto()
+    # AI 팩이 있으면 모델 서버를 켠다(명세 M02). 모델을 불러오는 동안에도 엔진은 바로 쓸 수 있다.
+    # start()는 실패를 예외로 내지 않지만, 엔진 시작은 어떤 경우에도 막지 않는다(M03).
+    try:
+        aipack.start()
+    except Exception:  # noqa: BLE001
+        pass
     if os.environ.get("JEJU_SKIP_WARMUP") != "1":
         threading.Thread(target=_warm_up, daemon=True).start()
         threading.Thread(target=_warm_model, daemon=True).start()
@@ -59,6 +105,14 @@ def _warm_model() -> None:
         return
     _model["warming"] = True
     try:
+        if aipack.current() is not None:
+            # 팩 모델은 CPU로 불러오므로 시간이 걸린다. 다 불러온 뒤에 점검 질문을 보낸다.
+            for _ in range(360):
+                ready, _reason = aipack.health()
+                server = aipack.current()
+                if ready or server is None or server.process.poll() is not None:
+                    break
+                time.sleep(0.5)
         ids = {ds.id for ds in pipeline.datasets()}
         probe = "hub-502" if "hub-502" in ids else "center-1-19-dummy"  # 공개 배포판에는 허브 원본이 없다
         result = planner.plan(pipeline.find(probe), "작년보다 늘었어?", timeout=60)
@@ -114,17 +168,46 @@ async def upload(file: UploadFile) -> dict:
     name = Path(file.filename or "upload.csv").name
     if not name.lower().endswith(".csv"):
         raise HTTPException(400, "CSV 파일만 넣을 수 있어요.")
-    safe = re.sub(r"[^\w.\-가-힣]", "_", name)
+    try:
+        raw = await file.read()
+    finally:
+        await file.close()
+    # Same CSV syntax checks as public input, without public upload limits.
+    web_input.dataset(raw, name, enforce_limits=False)
     pipeline.WORKSPACE.mkdir(parents=True, exist_ok=True)
-    target = pipeline.WORKSPACE / safe
-    with target.open("wb") as out:
-        shutil.copyfileobj(file.file, out)
+    target = pipeline.WORKSPACE / f"{uuid4().hex}.csv"
+    target.write_bytes(raw)
+    try:
+        target.with_suffix(".json").write_text(json.dumps({"title": name}, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        target.unlink(missing_ok=True)
+        raise
     return pipeline._ds_dict(pipeline.find(f"upload-{target.stem}"))
 
 
 @app.get("/api/datasets/{dataset_id}/understand")
 def understand(dataset_id: str) -> dict:
-    return pipeline.understand(_dataset(dataset_id))
+    ds = _dataset(dataset_id)
+    result = pipeline.understand(ds)
+    if ds.source == "upload":
+        result["upload_profile"] = web_profile.describe(ds)
+        result["selection"] = ds.selection
+    return result
+
+
+@app.put("/api/datasets/{dataset_id}/selection")
+def select_dataset(dataset_id: str, spec: web_input.ExecutionSpec) -> dict:
+    ds = _dataset(dataset_id)
+    if ds.source != "upload":
+        raise HTTPException(422, "직접 넣은 CSV에서만 분석할 열을 바꿀 수 있어요.")
+    # Recheck the raw input and all selected cells. Do not normalize the stored original.
+    web_input.dataset(ds.path.read_bytes(), ds.title, spec, enforce_limits=False)
+    metadata = {"title": ds.title, "selection": spec.model_dump()}
+    target = ds.path.with_suffix(".json")
+    temporary = target.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
+    temporary.replace(target)
+    return {"selection": metadata["selection"]}
 
 
 @app.get("/api/datasets/{dataset_id}/analyze")
@@ -158,7 +241,10 @@ def analyze(
 
 @app.get("/api/join")
 def join(left: str, left_value: str, right: str, right_value: str) -> dict:
-    return pipeline.join_monthly(_dataset(left), left_value, _dataset(right), right_value)
+    try:
+        return pipeline.join_monthly(_dataset(left), left_value, _dataset(right), right_value)
+    except ValueError as err:
+        raise HTTPException(422, str(err)) from None
 
 
 @app.delete("/api/workspace")
@@ -190,11 +276,22 @@ def put_settings(body: Settings) -> dict:
 def selfcheck() -> dict:
     """자가 점검. 심사와 센터 운영자가 설치 직후 한눈에 확인한다."""
     status = llm.status()
-    try:
-        llm.base_url()
-        url_ok, url_detail = True, "이 PC(127.0.0.1)의 모델만 불러요"
-    except llm.ModelUnavailable as err:
-        url_ok, url_detail = False, str(err)
+    server = aipack.current()
+    if server is not None:
+        url_ok, url_detail = True, "AI 팩 서버를 이 PC(127.0.0.1)에서 실행마다 새 키로 불러요"
+    else:
+        try:
+            llm.base_url()
+            url_ok, url_detail = True, "이 PC(127.0.0.1)의 모델만 불러요"
+        except llm.ModelUnavailable as err:
+            url_ok, url_detail = False, str(err)
+    if server is not None:
+        where = "앱에 포함" if server.pack.bundled else "따로 설치"
+        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": True, "detail": f"{server.pack.name} (llama.cpp {server.pack.llama_cpp}, {where})", "optional": True}
+    elif aipack.error():
+        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": False, "detail": aipack.error(), "optional": True}
+    else:
+        pack_item = {"key": "ai_pack", "label": "AI 팩", "ok": False, "detail": f"없어요. {aipack.install_hint()}", "optional": True}
     warning = privacy.ollama_host_warning()
     files = privacy.files()
     settings = privacy.load()
@@ -208,6 +305,7 @@ def selfcheck() -> dict:
             "detail": f"{status['model']} 준비됐어요" if status.get("available") and _model["ready"] else status.get("reason") or "준비 중이에요",
             "optional": True,
         },
+        pack_item,
         {"key": "model_url", "label": "모델 주소", "ok": url_ok, "detail": url_detail},
         {"key": "ollama_host", "label": "모델 외부 접속", "ok": warning is None, "detail": warning or "다른 PC에서 접속할 수 없어요"},
         {"key": "workspace", "label": "내 작업", "ok": True, "detail": f"파일 {len(files)}개"},

@@ -39,7 +39,7 @@ def save(auto_delete: bool) -> dict:
 
 
 def files() -> list[Path]:
-    return sorted(p for p in workspace().glob("*") if p.is_file()) if workspace().exists() else []
+    return sorted(workspace().glob("*.csv")) if workspace().exists() else []
 
 
 def clear() -> int:

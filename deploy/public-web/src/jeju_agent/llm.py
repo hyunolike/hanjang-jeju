@@ -44,7 +44,9 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-_OPENER = urllib.request.build_opener(_NoRedirect)
+# 로컬 모델만 부르므로 프록시를 쓰지 않는다. 기본 opener는 HTTP_PROXY와 Windows 레지스트리 프록시를 따라
+# 127.0.0.1 요청과 키, 질문을 기관 프록시로 보낼 수 있다.
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect)
 
 
 def _request(path: str, payload: dict | None = None, timeout: float = 5) -> dict:
@@ -60,14 +62,33 @@ def _request(path: str, payload: dict | None = None, timeout: float = 5) -> dict
 
 
 def status(model: str = DEFAULT_MODEL) -> dict:
+    """AI 팩 서버가 켜져 있으면 그것을, 아니면 Ollama를 본다(명세 M03)."""
+    from . import aipack
+
+    server = aipack.current()
+    if server is not None:
+        ready, reason = aipack.health()
+        out = {"available": ready, "model": server.pack.name, "backend": "pack"}
+        # 서버가 살아 있으면 모델을 불러오는 중이다. 화면은 "없음"이 아니라 "준비 중"으로 보여 준다(M07).
+        return out if ready else {**out, "reason": reason, "loading": server.process.poll() is None}
+    out = _ollama_status(model)
+    if not out["available"]:
+        out["install_hint"] = aipack.install_hint()
+    if not out["available"] and aipack.error():
+        out["reason"] = aipack.error()  # 팩이 있는데 잘못된 경우가 Ollama 안내보다 중요하다
+        out["pack_error"] = True
+    return out
+
+
+def _ollama_status(model: str) -> dict:
     try:
         tags = _request("/api/tags", timeout=2)
     except ModelUnavailable as err:
-        return {"available": False, "model": model, "reason": str(err)}
+        return {"available": False, "model": model, "backend": "ollama", "reason": str(err)}
     names = {m.get("name") for m in tags.get("models", [])}
     if model not in names:
-        return {"available": False, "model": model, "reason": f"모델 {model}이 설치되어 있지 않아요. 'ollama pull {model}'로 받아 주세요."}
-    return {"available": True, "model": model}
+        return {"available": False, "model": model, "backend": "ollama", "reason": f"모델 {model}이 설치되어 있지 않아요. 'ollama pull {model}'로 받아 주세요."}
+    return {"available": True, "model": model, "backend": "ollama"}
 
 
 @dataclass
@@ -80,6 +101,11 @@ class ChatResult:
 
 def chat_json(system: str, messages: list[dict], schema: dict, model: str = DEFAULT_MODEL, timeout: float = 20) -> ChatResult:
     """구조화 출력으로 JSON 하나를 받는다. 온도 0, 출력 길이 상한(기획안 13.3)."""
+    from . import aipack
+
+    server = aipack.current()
+    if server is not None:
+        return _pack_chat(server, system, messages, schema, timeout)
     started = time.monotonic()
     body = _request(
         "/api/chat",
@@ -100,4 +126,43 @@ def chat_json(system: str, messages: list[dict], schema: dict, model: str = DEFA
         latency_ms=int((time.monotonic() - started) * 1000),
         eval_count=int(body.get("eval_count", 0)),
         prompt_tokens=int(body.get("prompt_eval_count", 0)),
+    )
+
+
+# AI 팩은 GPU 없이 CPU로 돈다. 이 Mac CPU에서 최대 9초였고 센터 PC는 더 느릴 수 있어 넉넉히 둔다(M4).
+PACK_TIMEOUT = 60
+
+
+def _pack_chat(server, system: str, messages: list[dict], schema: dict, timeout: float) -> ChatResult:
+    """AI 팩(llama.cpp 서버)의 OpenAI 호환 API. JSON 스키마는 서버가 문법으로 강제한다.
+
+    생각 모드는 서버를 --reasoning off로 켜서 끈다. 주소는 엔진이 만든 127.0.0.1 포트이고 키는 실행마다 새로 만든다.
+    """
+    timeout = max(timeout, PACK_TIMEOUT)
+    started = time.monotonic()
+    payload = {
+        "messages": [{"role": "system", "content": system}, *messages],
+        "response_format": {"type": "json_schema", "json_schema": {"name": "plan", "schema": schema}},
+        "temperature": 0,
+        "max_tokens": 300,
+        "stream": False,
+    }
+    req = urllib.request.Request(
+        f"{server.url}/v1/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {server.api_key}"},
+        method="POST",
+    )
+    try:
+        with _OPENER.open(req, timeout=timeout) as res:
+            body = json.loads(res.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, ConnectionError) as err:
+        raise ModelUnavailable(f"AI 팩 모델에 연결하지 못했어요: {err}") from err
+    usage = body.get("usage") or {}
+    choice = (body.get("choices") or [{}])[0]
+    return ChatResult(
+        content=(choice.get("message") or {}).get("content") or "",
+        latency_ms=int((time.monotonic() - started) * 1000),
+        eval_count=int(usage.get("completion_tokens", 0)),
+        prompt_tokens=int(usage.get("prompt_tokens", 0)),
     )
