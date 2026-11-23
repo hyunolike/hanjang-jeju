@@ -17,8 +17,9 @@ export function Upload({ onPick }: { onPick: (ds: Dataset) => void }) {
   const [over, setOver] = useState(false)
   const upload = useMutation({
     mutationFn: api.upload,
-    onSuccess: (ds) => {
+    onSuccess: async (ds) => {
       if (WEB_UPLOAD) queryClient.removeQueries({ predicate: (q) => q.queryKey.some((key) => typeof key === "string" && key.startsWith("web-")) })
+      else await queryClient.invalidateQueries({ queryKey: ["datasets"] })
       toast.success("자료를 넣었어요")
       onPick(ds)
     },

@@ -103,7 +103,7 @@ If no model is available, select analysis options manually. Desktop analysis run
 ## From CSV to report
 
 1. **Load a CSV** or start with a built-in example.
-2. **Review the fields:** confirm the date, numeric value, unit and filters. The web demo suggests candidates and asks you to clarify ambiguous meanings.
+2. **Review the fields:** confirm the date, numeric value, unit and filters. Both desktop and web suggest candidates and ask you to clarify ambiguous meanings. Desktop remembers these choices for each uploaded file.
 3. **Explore changes and evidence:** inspect charts and fact IDs on analysis cards. Request a forecast when needed.
 4. **Take your one-page result:** review conditions, summary and evidence tables, then print or save as a PDF.
 

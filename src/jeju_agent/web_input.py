@@ -6,7 +6,6 @@ import hashlib
 import io
 import math
 import re
-from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
@@ -14,7 +13,7 @@ import pandas as pd
 from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from . import ingest, pipeline, semantics
+from . import aggregate, ingest, pipeline, semantics
 
 MAX_BYTES = 3 * 1024 * 1024
 MAX_ROWS = 20_000
@@ -69,15 +68,7 @@ class SelectionError(HTTPException):
 
 
 def parse_month(value: str) -> str | None:
-    patterns = [(r"\d{6}", "%Y%m"), (r"\d{8}", "%Y%m%d"), (r"\d{4}-\d{2}", "%Y-%m"), (r"\d{4}-\d{2}-\d{2}", "%Y-%m-%d")]
-    for pattern, fmt in patterns:
-        if re.fullmatch(pattern, value):
-            try:
-                date = datetime.strptime(value, fmt)
-                return f"{date.year:04d}{date.month:02d}"
-            except ValueError:
-                break
-    return None
+    return aggregate.parse_month(value)
 
 
 def strict_month(value: str, row: int, column: str = "") -> str:
@@ -88,58 +79,37 @@ def strict_month(value: str, row: int, column: str = "") -> str:
 
 
 def value_semantic(name: str, ko: str = "") -> semantics.Semantic:
-    """공개 입력의 명시적 단위를 보존한다. 숫자 모양만으로 합산을 확정하지 않는다."""
-    sem = semantics.infer(re.sub(r"\s+", "", name), re.sub(r"\s+", "", ko))
-    text = f"{name} {ko}"
-    if re.search(r"(?:^|[_\s])(?:id|code|cd|key)(?:$|[_\s])|(?:코드|아이디|식별자)$", name, re.I):
-        return semantics.Semantic("category")
-    if re.search(r"율|비중|점유비|(?:지수|계수|점수)(?:\s*[（(\[].*)?$", text.strip()):
-        return semantics.Semantic("measure", "%" if "%" in text else "", False, "비율이나 지표는 합계로 계산하지 않아요")
-    if re.fullmatch(r"(?:기준\s*)?(?:연도|년도)", name):
-        return semantics.Semantic("time")
-    if re.fullmatch(r"(?:(?:기준|등록|거래|집계|발생|접수|관측|기록|측정|작성)(?:일|일자|날짜|일시)|년월일)", re.sub(r"\s+", "", name)) or re.fullmatch(r"(?:(?:기준|등록|거래|집계|발생|접수|관측|기록|측정|작성)(?:일|일자|날짜|일시)|년월일)", re.sub(r"\s+", "", ko)):
-        return semantics.Semantic("time")
-    explicit = re.search(r"(백만\s*원|천\s*원|만\s*원|억\s*원|원|건|개|명|%)\s*[)）\]]?(?=\s|$)", text)
-    unit = re.sub(r"\s+", "", explicit.group(1)) if explicit else sem.unit
-    if unit == "%":
-        return semantics.Semantic("measure", unit, False, "비율은 월별로 더할 수 없어요")
-    if sem.role == "unknown" and re.search(r"판매액|판매량|수량|총액|합계", text):
-        return semantics.Semantic("measure", unit, True)
-    return semantics.Semantic(sem.role, unit, sem.additive, sem.note)
+    return semantics.value_semantic(name, ko)
 
-
-def dataset(raw: bytes, filename: str, spec: ExecutionSpec | None = None) -> pipeline.Dataset:
-    if len(raw) > MAX_BYTES:
+def dataset(raw: bytes, filename: str, spec: ExecutionSpec | None = None, *, enforce_limits: bool = True) -> pipeline.Dataset:
+    if enforce_limits and len(raw) > MAX_BYTES:
         reject("CSV는 3MiB 이하로 넣어 주세요.", 413)
     if not filename.lower().endswith(".csv"):
         reject("CSV 파일만 넣을 수 있어요.")
     try:
         encoding = ingest.detect_encoding(raw)
-        reader = csv.reader(io.StringIO(raw.decode(encoding)), strict=True)
+        decoded = raw.decode(encoding)
+        if not decoded.strip():
+            reject("파일이 비어 있어요. 데이터가 있는 CSV를 넣어 주세요.")
+        reader = csv.reader(io.StringIO(decoded), strict=True)
         header = next(reader)
         header = [ingest.INVISIBLE_SPACE.sub("", x).strip() for x in header]
         if not header or any(not x or len(x) > 200 for x in header) or len(set(header)) != len(header):
             reject("열 이름에 빈칸이나 중복이 있어요. 서로 다른 열 이름을 넣어 주세요.")
-        if len(header) > MAX_COLUMNS:
+        if enforce_limits and len(header) > MAX_COLUMNS:
             reject("한 번에 50열까지 분석할 수 있어요.", 413)
         count = 0
-        source_lines = []
-        previous_line = reader.line_num
         for row in reader:
-            source_line = previous_line + 1
-            previous_line = reader.line_num
             if not row:
                 continue
-            source_lines.append(source_line)
             count += 1
-            if count > MAX_ROWS:
+            if enforce_limits and count > MAX_ROWS:
                 reject("한 번에 20,000행까지 분석할 수 있어요.", 413)
             if len(row) != len(header):
                 reject(f"{reader.line_num}행의 칸 수가 열 이름 수와 달라요.")
         if not count:
             reject("분석할 데이터 행이 없어요.")
         clean = ingest.load_bytes(raw)
-        clean.source_rows = [source_lines[row - 2] for row in clean.source_rows]
     except (StopIteration, UnicodeError, csv.Error, ValueError, pd.errors.ParserError):
         reject("CSV 형식이나 인코딩을 읽지 못했어요. UTF-8 또는 CP949 CSV로 다시 저장해 주세요.")
     if clean.data.empty:

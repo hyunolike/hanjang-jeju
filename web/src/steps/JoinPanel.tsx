@@ -13,7 +13,7 @@ export function JoinPanel({ dataset, value }: { dataset: Dataset; value: string 
   const join = useMutation({
     mutationFn: async (right: Dataset) => {
       const u = await api.understand(right.id)
-      const measure = u.columns.find((c) => c.role === "measure" && c.additive) ?? u.columns.find((c) => c.role === "measure")
+      const measure = u.columns.find((c) => c.name === u.selection?.value && c.role === "measure") ?? u.columns.find((c) => c.role === "measure" && c.additive) ?? u.columns.find((c) => c.role === "measure")
       if (!u.time_column || !measure) throw new Error("이 자료에서 시간이나 값 열을 찾지 못했어요.")
       return { result: await api.join(dataset.id, value, right.id, measure.name), measure: measure.ko }
     },
@@ -53,8 +53,9 @@ export function JoinPanel({ dataset, value }: { dataset: Dataset; value: string 
           <div className="grid grid-cols-3 gap-4">
             <Stat label="붙은 달" value={`${r.report.matched_rows}개월`} />
             <Stat label="못 붙은 달" value={`${r.report.unmatched_rows}개월`} />
-            <Stat label="함께 움직인 정도" value={corr ? corr.value.toFixed(2) : "-"} />
+            <Stat label="함께 움직인 정도" value={corr && typeof corr.value === "number" && Number.isFinite(corr.value) ? corr.value.toFixed(2) : "계산 불가"} />
           </div>
+          {r.correlation_refusal && <p className="text-[14px] text-muted-foreground">{r.correlation_refusal}</p>}
           {r.report.unmatched_keys.length > 0 && (
             <div className="rounded-2xl bg-[var(--caution-50)] p-4 text-[15px] leading-relaxed text-[var(--caution)]">
               <b>{r.report.unmatched_keys.map((k) => period(`${k.slice(0, 4)}-${k.slice(4)}`)).join(", ")}</b>은 {other?.title}에 없어서 붙이지 못했어요. 이 달은 비교에서 빠져요.

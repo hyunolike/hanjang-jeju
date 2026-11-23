@@ -93,11 +93,14 @@ export function Result({ analysis: a, onBack, onDone }: { analysis: Analysis; on
           variant="ghost" size="cta"
           className="flex-1"
           onClick={async () => {
-            const r = await api.clearWorkspace()
-            await queryClient.cancelQueries({ predicate: (q) => q.queryKey.some(key => typeof key === "string" && key.startsWith("web-")) })
-            queryClient.removeQueries({ predicate: (q) => q.queryKey.some(key => typeof key === "string" && key.startsWith("web-")) })
-            toast.success(r.removed ? `내 자료 ${r.removed}개를 지웠어요` : "지울 자료가 없어요")
-            onDone()
+            try {
+              const r = await api.clearWorkspace()
+              const related = (q: { queryKey: readonly unknown[] }) => ["datasets", "understand", "analyze"].includes(String(q.queryKey[0])) || q.queryKey.some(key => typeof key === "string" && key.startsWith("web-"))
+              await queryClient.cancelQueries({ predicate: related })
+              queryClient.removeQueries({ predicate: related })
+              toast.success(r.removed ? `내 자료 ${r.removed}개를 지웠어요` : "지울 자료가 없어요")
+              onDone()
+            } catch (error) { toast.error((error as Error).message) }
           }}
         >
           <Trash2 /> 마치고 지우기

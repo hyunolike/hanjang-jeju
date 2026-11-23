@@ -73,3 +73,24 @@ def _unit(name: str, ko: str) -> str:
 
 def describe(columns: list[dict]) -> dict[str, dict]:
     return {c["name"]: asdict(infer(c["name"], c.get("ko", ""))) for c in columns}
+
+
+def value_semantic(name: str, ko: str = "") -> Semantic:
+    """입력의 명시적 단위를 보존한다. 숫자 모양만으로 합산을 확정하지 않는다."""
+    sem = infer(re.sub(r"\s+", "", name), re.sub(r"\s+", "", ko))
+    text = f"{name} {ko}"
+    if re.search(r"(?:^|[_\s])(?:id|code|cd|key)(?:$|[_\s])|(?:코드|아이디|식별자)$", name, re.I):
+        return Semantic("category")
+    if re.search(r"율|비중|점유비|(?:지수|계수|점수)(?:\s*[（(\[].*)?$", text.strip()):
+        return Semantic("measure", "%" if "%" in text else "", False, "비율이나 지표는 합계로 계산하지 않아요")
+    if re.fullmatch(r"(?:기준\s*)?(?:연도|년도)", name):
+        return Semantic("time")
+    if re.fullmatch(r"(?:(?:기준|등록|거래|집계|발생|접수|관측|기록|측정|작성)(?:일|일자|날짜|일시)|년월일)", re.sub(r"\s+", "", name)) or re.fullmatch(r"(?:(?:기준|등록|거래|집계|발생|접수|관측|기록|측정|작성)(?:일|일자|날짜|일시)|년월일)", re.sub(r"\s+", "", ko)):
+        return Semantic("time")
+    explicit = re.search(r"(백만\s*원|천\s*원|만\s*원|억\s*원|원|건|개|명|%)\s*[)）\]]?(?=\s|$)", text)
+    unit = re.sub(r"\s+", "", explicit.group(1)) if explicit else sem.unit
+    if unit == "%":
+        return Semantic("measure", unit, False, "비율은 월별로 더할 수 없어요")
+    if sem.role == "unknown" and re.search(r"판매액|판매량|수량|총액|합계", text):
+        return Semantic("measure", unit, True)
+    return Semantic(sem.role, unit, sem.additive, sem.note)

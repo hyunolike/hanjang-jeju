@@ -7,15 +7,28 @@
 from __future__ import annotations
 
 import pandas as pd
+import re
+from datetime import datetime
 
 from . import semantics
 
 
+def parse_month(value: str) -> str | None:
+    for pattern, fmt in [(r"\d{6}", "%Y%m"), (r"\d{8}", "%Y%m%d"), (r"\d{4}-\d{2}", "%Y-%m"), (r"\d{4}-\d{2}-\d{2}", "%Y-%m-%d")]:
+        if re.fullmatch(pattern, str(value)):
+            try:
+                date = datetime.strptime(str(value), fmt)
+                return f"{date.year:04d}{date.month:02d}"
+            except ValueError:
+                return None
+    return None
+
+
 def to_month(value: str) -> str:
-    digits = "".join(ch for ch in str(value) if ch.isdigit())
-    if len(digits) < 6:
+    month = parse_month(value)
+    if month is None:
         raise ValueError(f"연월로 바꿀 수 없는 값이에요: {value}")
-    return digits[:6]
+    return month
 
 
 def monthly(

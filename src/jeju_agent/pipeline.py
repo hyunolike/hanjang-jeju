@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -45,7 +46,13 @@ def datasets() -> list[Dataset]:
     for path in sorted(DUMMY.glob("*.csv")):
         out.append(Dataset(path.stem, _dummy_title(path), "dummy", path, "더미 (공개 명세서 기준)", ""))
     for path in sorted(WORKSPACE.glob("*.csv")):
-        out.append(Dataset(f"upload-{path.stem}", path.name, "upload", path))
+        try:
+            meta = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            meta = {}
+        if not isinstance(meta, dict):
+            meta = {}
+        out.append(Dataset(f"upload-{path.stem}", meta.get("title", path.name), "upload", path, selection=meta.get("selection")))
     return out
 
 
@@ -71,12 +78,15 @@ def understand(ds: Dataset) -> dict:
     columns = []
     for name in result.data.columns:
         ko = spec_columns.get(name, {}).get("ko", "")
-        sem = semantics.infer(name, ko)
+        sem = semantics.value_semantic(name, ko)
         if ds.selection:
-            role = next((role for key, role in (("time", "time"), ("value", "measure"), ("category", "category")) if ds.selection.get(key) == name), "unknown")
-            sem = semantics.Semantic(role, ds.selection.get("unit", "") if role == "measure" else "", True if role == "measure" else None)
+            role = next((role for key, role in (("time", "time"), ("value", "measure"), ("category", "category")) if ds.selection.get(key) == name), sem.role if ds.data is None else "unknown")
+            if name == ds.selection.get("value"):
+                sem = semantics.Semantic(role, ds.selection.get("unit", ""), sem.additive if sem.additive is False else True, sem.note)
+            elif role != sem.role:
+                sem = semantics.Semantic(role)
         columns.append({"name": name, "ko": ko or name, **vars(sem), **vars(result.columns[name])})
-    time = next((c["name"] for c in columns if c["role"] == "time" and c["name"] not in {"pt_year", "pt_month"}), None)
+    time = ds.selection.get("time") if ds.selection else next((c["name"] for c in columns if c["role"] == "time" and c["name"] not in {"pt_year", "pt_month"}), None)
     months: dict = {}
     if time:
         try:
@@ -116,6 +126,24 @@ def apply_filters(data: pd.DataFrame, filters: list[dict] | None) -> pd.DataFram
     return data
 
 
+def checked_data(ds: Dataset, time: str, chosen: dict) -> pd.DataFrame:
+    """Check the full original rows before filtering or aggregating."""
+    if chosen["additive"] is not True:
+        raise ValueError(f"‘{chosen['ko']}’은 합계를 낼 수 없어요. 평균·비율·인구는 더하지 않고, 다른 금액이나 수량을 골라 주세요.")
+    result = read_dataset(ds)
+    data = result.data.copy()
+    rows = result.source_rows or list(range(2, len(data) + 2))
+    for row, raw in zip(rows, data[time]):
+        if aggregate.parse_month(str(raw)) is None:
+            raise ValueError(f"‘{time}’의 {row}행을 날짜로 읽지 못했어요. CSV의 날짜를 확인해 주세요.")
+    numeric = pd.to_numeric(data[chosen["name"]], errors="coerce")
+    for row, original, value in zip(rows, data[chosen["name"]], numeric):
+        if pd.notna(original) and not math.isfinite(float(value)):
+            raise ValueError(f"‘{chosen['ko']}’의 {row}행을 숫자로 읽지 못했어요. CSV의 해당 값을 확인해 주세요.")
+    data[chosen["name"]] = numeric
+    return data
+
+
 def analyze(
     ds: Dataset,
     value: str | None = None,
@@ -131,7 +159,10 @@ def analyze(
     measures = [c for c in info["columns"] if c["role"] == "measure"]
     if not time or not measures:
         return {"dataset": info["dataset"], "error": "시간 열이나 값 열을 찾지 못했어요. 열의 뜻을 직접 골라 주세요."}
+    value = value or (ds.selection or {}).get("value")
     chosen = next((c for c in measures if c["name"] == value), None) or next((c for c in measures if c["additive"]), measures[0])
+    if category is None and ds.selection:
+        category = ds.selection.get("category")
     categories = [c["name"] for c in info["columns"] if c["role"] in GROUP_ROLES and c["name"] != time]
     if category not in categories:
         category = None
@@ -139,12 +170,19 @@ def analyze(
         if f.get("column") not in categories:
             return {"dataset": info["dataset"], "error": f"'{f.get('column')}' 열로는 거를 수 없어요."}
 
+    dates = read_dataset(ds).data[time].dropna().astype(str)
+    if not info["months"] and not dates.empty and dates.str.fullmatch(r"[1-9][0-9]{3}").all():
+        return {"dataset": info["dataset"], "error": "월 단위 시간 열이 없어 흐름을 볼 수 없어요. 연도와 월이 함께 있는 자료를 넣어 주세요."}
+    try:
+        validated = checked_data(ds, time, chosen)
+    except ValueError as err:
+        return {"dataset": info["dataset"], "error": str(err)}
     if not info["months"]:
         return {
             "dataset": info["dataset"],
             "error": "월 단위 시간 열이 없어 흐름을 볼 수 없어요. 연 단위 자료는 다른 자료에 붙여 비교하는 데 써 주세요.",
         }
-    data = apply_filters(read_dataset(ds).data, filters).copy()
+    data = apply_filters(validated, filters).copy()
     if data.empty:
         return {"dataset": info["dataset"], "error": "고른 조건에 맞는 행이 없어요. 거르는 값을 다시 골라 주세요."}
     # 사용자 열 이름이 _ym/_p 등 내부 보조 열과 같아도 원본을 덮지 않는다.
@@ -192,23 +230,37 @@ def analyze(
 def join_monthly(left: Dataset, left_value: str, right: Dataset, right_value: str) -> dict:
     """두 자료를 월 합계로 맞춰 결합하고 커버리지를 보고한다."""
     frames = []
-    for ds, value in ((left, left_value), (right, right_value)):
+    for ds, value, internal in ((left, left_value, "left_value"), (right, right_value, "right_value")):
         info = understand(ds)
-        data = read_dataset(ds).data
-        data[value] = pd.to_numeric(data[value], errors="coerce")
-        data["base_year_month"] = data[info["time_column"]].map(aggregate.to_month)
-        frames.append(data.groupby("base_year_month", as_index=False)[value].sum(min_count=1))
+        chosen = next((c for c in info["columns"] if c["name"] == value and c["role"] == "measure"), None)
+        if not info["time_column"] or chosen is None:
+            raise ValueError("결합할 날짜와 값 항목을 다시 골라 주세요.")
+        data = checked_data(ds, info["time_column"], chosen)
+        frame = pd.DataFrame({"base_year_month": data[info["time_column"]].map(aggregate.to_month), internal: data[value]})
+        frames.append(frame.groupby("base_year_month", as_index=False)[internal].sum(min_count=1))
     merged, report = regions.join_with_report(frames[0], frames[1], ["base_year_month"])
     store = FactStore()
-    both = merged.dropna(subset=[left_value, right_value])
-    corr = both[left_value].corr(both[right_value]) if len(both) > 2 else float("nan")
-    fact = store.add("correlation", round(float(corr), 3), "", "월별 상관계수", months=len(both))
+    both = merged.dropna(subset=["left_value", "right_value"])
+    refusal = None
+    corr = None
+    if len(both) < 3:
+        refusal = "함께 비교할 월이 부족해 상관계수를 계산하지 못했어요. 3개월 이상이 필요해요."
+    elif both.left_value.nunique() < 2 or both.right_value.nunique() < 2:
+        refusal = "한 자료의 값이 일정해 상관계수를 계산하지 못했어요."
+    else:
+        computed = float(both.left_value.corr(both.right_value))
+        if math.isfinite(computed):
+            corr = round(computed, 3)
+        else:
+            refusal = "자료의 값으로 상관계수를 계산하지 못했어요."
+    fact = store.add("correlation", corr if corr is not None else float("nan"), "", "월별 상관계수", months=len(both))
     return {
         "left": _ds_dict(left),
         "right": _ds_dict(right),
         "report": report.to_dict(),
         "rows": merged.astype(object).fillna("").to_dict(orient="records"),
-        "facts": {fact.id: fact.to_dict()},
+        "facts": {fact.id: {**fact.to_dict(), "value": corr}},
+        "correlation_refusal": refusal,
         "note": "상관은 함께 움직이는 정도일 뿐 원인을 뜻하지 않아요.",
     }
 

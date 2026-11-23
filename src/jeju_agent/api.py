@@ -5,9 +5,7 @@
 
 from __future__ import annotations
 
-import re
 from contextlib import asynccontextmanager
-import shutil
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile
@@ -19,10 +17,12 @@ import json
 import os
 import threading
 import time
+from uuid import uuid4
 
 from pydantic import BaseModel
 
-from . import aipack, llm, paths, pipeline, planner, privacy
+from . import aipack, llm, paths, pipeline, planner, privacy, web_input, web_profile
+
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
@@ -34,6 +34,11 @@ async def _lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="제주 센터 데이터 분석 에이전트", docs_url="/api/docs", lifespan=_lifespan)
+
+
+@app.exception_handler(web_input.SelectionError)
+async def invalid_selection(request, exc):
+    return JSONResponse({"detail": exc.detail, "issue": exc.issue}, status_code=exc.status_code)
 
 # 이 엔진은 이용자의 브라우저에서도 열리므로(--open), 같은 브라우저의 다른 사이트가 요청을 보낼 수 있다.
 # 1) Host 허용 목록(P01): DNS rebinding으로 다른 이름을 달고 온 요청은 400.
@@ -163,17 +168,46 @@ async def upload(file: UploadFile) -> dict:
     name = Path(file.filename or "upload.csv").name
     if not name.lower().endswith(".csv"):
         raise HTTPException(400, "CSV 파일만 넣을 수 있어요.")
-    safe = re.sub(r"[^\w.\-가-힣]", "_", name)
+    try:
+        raw = await file.read()
+    finally:
+        await file.close()
+    # Same CSV syntax checks as public input, without public upload limits.
+    web_input.dataset(raw, name, enforce_limits=False)
     pipeline.WORKSPACE.mkdir(parents=True, exist_ok=True)
-    target = pipeline.WORKSPACE / safe
-    with target.open("wb") as out:
-        shutil.copyfileobj(file.file, out)
+    target = pipeline.WORKSPACE / f"{uuid4().hex}.csv"
+    target.write_bytes(raw)
+    try:
+        target.with_suffix(".json").write_text(json.dumps({"title": name}, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        target.unlink(missing_ok=True)
+        raise
     return pipeline._ds_dict(pipeline.find(f"upload-{target.stem}"))
 
 
 @app.get("/api/datasets/{dataset_id}/understand")
 def understand(dataset_id: str) -> dict:
-    return pipeline.understand(_dataset(dataset_id))
+    ds = _dataset(dataset_id)
+    result = pipeline.understand(ds)
+    if ds.source == "upload":
+        result["upload_profile"] = web_profile.describe(ds)
+        result["selection"] = ds.selection
+    return result
+
+
+@app.put("/api/datasets/{dataset_id}/selection")
+def select_dataset(dataset_id: str, spec: web_input.ExecutionSpec) -> dict:
+    ds = _dataset(dataset_id)
+    if ds.source != "upload":
+        raise HTTPException(422, "직접 넣은 CSV에서만 분석할 열을 바꿀 수 있어요.")
+    # Recheck the raw input and all selected cells. Do not normalize the stored original.
+    web_input.dataset(ds.path.read_bytes(), ds.title, spec, enforce_limits=False)
+    metadata = {"title": ds.title, "selection": spec.model_dump()}
+    target = ds.path.with_suffix(".json")
+    temporary = target.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
+    temporary.replace(target)
+    return {"selection": metadata["selection"]}
 
 
 @app.get("/api/datasets/{dataset_id}/analyze")
@@ -207,7 +241,10 @@ def analyze(
 
 @app.get("/api/join")
 def join(left: str, left_value: str, right: str, right_value: str) -> dict:
-    return pipeline.join_monthly(_dataset(left), left_value, _dataset(right), right_value)
+    try:
+        return pipeline.join_monthly(_dataset(left), left_value, _dataset(right), right_value)
+    except ValueError as err:
+        raise HTTPException(422, str(err)) from None
 
 
 @app.delete("/api/workspace")

@@ -15,6 +15,7 @@ export type ColumnInfo = {
 
 export type Understanding = {
   upload_profile?: UploadProfile
+  selection?: Pick<ExecutionSpec, "time" | "value" | "category" | "unit" | "additive_confirmed"> | null
   dataset: Dataset
   recognition: { table_id: string | null; title: string | null; source: string | null; score: number; unknown_columns: string[] }
   clean: { encoding: string; rows: number; subtotal_rows: number }
@@ -91,12 +92,13 @@ export type AnalyzeOptions = { value?: string; category?: string | null; intent?
 
 export type JoinResult = {
   report: { left_rows: number; matched_rows: number; unmatched_rows: number; unmatched_keys: string[]; multi_match_keys: string[] }
-  facts: Record<string, Fact>
+  facts: Record<string, Omit<Fact, "value"> & { value: number | null }>
+  correlation_refusal?: string | null
   note: string
 }
 
-async function get<T>(url: string): Promise<T> {
-  const res = await fetch(url)
+async function get<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, options)
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.detail ?? "서버에 연결하지 못했어요.")
   return res.json()
 }
@@ -108,6 +110,7 @@ const S = "/static-api"
 const k = (v?: string | null) => v || "_"
 
 const staticApi = {
+  selectDataset: async (_id: string, _spec: Partial<ExecutionSpec>) => { void _id; void _spec; throw new Error("PC용 프로그램에서 분석할 항목을 골라 주세요.") },
   datasets: () => get<Dataset[]>(`${S}/datasets.json`),
   understand: (id: string) => get<Understanding>(`${S}/understand/${id}.json`),
   analyze: (id: string, o: AnalyzeOptions = {}) => get<Analysis>(`${S}/analyze/${id}/${k(o.value)}__${k(o.category)}.json`),
@@ -116,7 +119,11 @@ const staticApi = {
     void _id; void _q
     throw new Error("질문은 PC용 프로그램에서 쓸 수 있어요.")
   },
-  join: (left: string, leftValue: string, right: string) => get<JoinResult>(`${S}/join/${left}/${leftValue}/${right}.json`),
+  join: async (left: string, leftValue: string, right: string) => {
+    const result = await get<JoinResult & { error?: string }>(`${S}/join/${left}/${leftValue}/${right}.json`)
+    if (result.error) throw new Error(result.error)
+    return result
+  },
   upload: async (_file: File): Promise<Dataset> => {
     void _file
     throw new Error("공개 체험판에서는 자료를 올릴 수 없어요. PC용 프로그램을 써 주세요.")
@@ -127,12 +134,18 @@ const staticApi = {
 }
 
 const serverApi = {
+  selectDataset: async (id: string, spec: Partial<ExecutionSpec>) => {
+    const res = await fetch(`/api/datasets/${id}/selection`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(spec) })
+    const body = await res.json().catch(() => null)
+    if (!res.ok) throw new UploadRequestError(typeof body?.detail === "string" ? body.detail : "분석할 항목을 확인해 주세요.", body?.issue)
+    return body
+  },
   datasets: () => get<Dataset[]>("/api/datasets"),
   understand: (id: string) => get<Understanding>(`/api/datasets/${id}/understand`),
   analyze: (id: string, o: AnalyzeOptions = {}) => {
     const q = new URLSearchParams()
     if (o.value) q.set("value", o.value)
-    if (o.category) q.set("category", o.category)
+    if (o.category !== undefined) q.set("category", o.category ?? "")
     if (o.intent) q.set("intent", o.intent)
     if (o.filters?.length) q.set("filters", JSON.stringify(o.filters))
     if (o.period_n) q.set("period_n", String(o.period_n))
@@ -154,13 +167,13 @@ const serverApi = {
     if (!res.ok) throw new Error((await res.json().catch(() => null))?.detail ?? "파일을 넣지 못했어요.")
     return (await res.json()) as Dataset
   },
-  clearWorkspace: async () => (await fetch("/api/workspace", { method: "DELETE" })).json() as Promise<{ removed: number }>,
+  clearWorkspace: () => get<{ removed: number }>("/api/workspace", { method: "DELETE" }),
   selfcheck: () => get<SelfCheck>("/api/selfcheck"),
   setAutoDelete: async (auto_delete: boolean) =>
     (await fetch("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ auto_delete }) })).json() as Promise<{ auto_delete: boolean }>,
 }
 
-import { analyzeUpload, clearUpload, uploadFile, uploadInfo, webModel } from "./upload"
+import { analyzeUpload, clearUpload, uploadFile, uploadInfo, webModel, UploadRequestError, type ExecutionSpec } from "./upload"
 
 const baseApi = STATIC ? staticApi : serverApi
 export const api = WEB_UPLOAD ? {

@@ -19,6 +19,8 @@ export function CarePanel({ onCleared }: { onCleared: () => void }) {
     onSuccess: (r) => {
       toast.success(r.removed ? `내 자료 ${r.removed}개를 지웠어요` : "지울 자료가 없어요")
       setConfirm(false)
+      qc.removeQueries({ queryKey: ["understand"] })
+      qc.removeQueries({ queryKey: ["analyze"] })
       qc.invalidateQueries()
       onCleared()
     },

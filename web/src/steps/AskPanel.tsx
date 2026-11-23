@@ -60,8 +60,9 @@ export function AskPanel({ dataset, onRun }: { dataset: Dataset; onRun: (o: Anal
       >
         <input
           value={question}
-          onChange={(e) => setQuestion(e.target.value)}
+          onChange={(e) => { setQuestion(e.target.value); setPicked({}); ask.reset() }}
           disabled={!ready || ask.isPending}
+          aria-label="분석 질문"
           placeholder={ready ? "예: 애월읍 어떤 업종 매출 비중이 커?" : "로컬 AI가 없으면 아래에서 직접 골라 주세요"}
           className="h-12 flex-1 rounded-xl border border-[var(--grey-300)] bg-card px-4 text-[16px] outline-none focus:border-primary"
         />

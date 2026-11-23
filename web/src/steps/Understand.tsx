@@ -22,7 +22,7 @@ export function Understand({ dataset, onBack, onNext }: { dataset: Dataset; onBa
   if (q.isLoading) return <StageLoading stage="understand" />
   if (q.error || !q.data) return <div className="space-y-5"><BigTitle eyebrow="2단계 기준 확인" title="자료를 읽지 못했어요" /><ActionFeedback tone="danger" title="다시 시작할 수 있어요" description={(q.error as Error)?.message || "자료를 다시 고른 뒤 확인해 주세요."} /><CtaBar><Button size="cta" className="w-full" onClick={onBack}>자료 다시 고르기</Button></CtaBar></div>
   const u = q.data
-  const uploaded = WEB_UPLOAD && dataset.source === "upload"
+  const uploaded = dataset.source === "upload"
   const name = u.recognition.title ?? "알 수 없는 표"
   const sum = (k: "missing" | "none" | "masked" | "trimmed") => u.columns.reduce((acc, c) => acc + c[k], 0)
 

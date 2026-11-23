@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Download } from "lucide-react"
-import type { Dataset, Understanding, UploadProfile } from "@/lib/api"
+import { api, WEB_UPLOAD, type Dataset, type Understanding, type UploadProfile } from "@/lib/api"
 import { selectUpload, uploadSelection, UploadRequestError, type ExecutionSpec } from "@/lib/upload"
 import { assignSelection, availableTimes, availableValues, columnLabel, EXAMPLE_CSV, hasAnalysisPair, initialSelection, nextSelectionStep, type ValueMeaning } from "@/lib/selection"
 import { ActionFeedback, FormField } from "@/components/form"
@@ -36,7 +36,7 @@ function UnsupportedSelection({ profile, onBack }: { profile: UploadProfile; onB
     ? badDate?.date_status === "too_long" ? "날짜 범위가 100년을 넘어요. 분석할 기간을 줄여 다시 넣어 주세요."
       : badDate ? `‘${badDate.name}’의 ${badDate.invalid_date_rows.join(", ")}행을 날짜로 읽지 못했어요. CSV의 날짜를 확인한 뒤 다시 넣어 주세요.`
       : "현재는 월별 자료를 분석할 수 있어요. 연도와 월이 함께 있는 CSV를 넣어 주세요."
-    : badNumber ? `‘${badNumber.name}’에 숫자로 읽지 못한 값이 있어요. CSV의 해당 항목을 확인한 뒤 다시 넣어 주세요.`
+    : badNumber ? `‘${badNumber.name}’의 ${badNumber.invalid_numeric_rows.join(", ")}행을 숫자로 읽지 못했어요. CSV의 해당 값을 확인한 뒤 다시 넣어 주세요.`
       : "월별 합계를 보려면 날짜 외에 금액이나 수량이 있는 항목이 필요해요. 날짜, 품목명과 코드만으로는 합계를 계산할 수 없어요."
   return <Panel title="이 자료에서 확인한 내용이에요">
     {date && <div className="mb-5 flex flex-wrap items-center gap-2 text-[16px]"><Pill tone="teal">날짜 항목</Pill><span>{date.name}</span>{date.first && date.last && <span className="text-[14px] text-muted-foreground">{period(date.first)} ~ {period(date.last)}</span>}</div>}
@@ -49,7 +49,7 @@ function UnsupportedSelection({ profile, onBack }: { profile: UploadProfile; onB
 
 function SelectionForm({ dataset, info, profile, onNext, onBack }: Props & { profile: UploadProfile }) {
   const queryClient = useQueryClient()
-  const old = uploadSelection(dataset.id)
+  const old = WEB_UPLOAD ? uploadSelection(dataset.id) : info.selection ?? undefined
   const [draft, setDraft] = useState(() => initialSelection(profile, old))
   const [meanings, setMeanings] = useState<Record<string, ValueMeaning>>(() => old?.value === initialSelection(profile, old).value && old?.additive_confirmed ? { [old.value]: "sum" } : {})
   const meaning = meanings[draft.value] ?? ""
@@ -90,7 +90,8 @@ function SelectionForm({ dataset, info, profile, onNext, onBack }: Props & { pro
     setBusy(true); setError(null)
     try {
       const spec: ExecutionSpec = { ...draft, category: draft.category || null, additive_confirmed: valueColumn?.additive === true || meaning === "sum", intent: "overview", filters: [], period_n: 0, horizon: 6, run_forecast: false }
-      await selectUpload(dataset.id, spec)
+      if (WEB_UPLOAD) await selectUpload(dataset.id, spec)
+      else await api.selectDataset(dataset.id, spec)
       await queryClient.invalidateQueries({ queryKey: ["understand", dataset.id] })
       queryClient.removeQueries({ queryKey: ["analyze", dataset.id] })
       onNext()
