@@ -1,6 +1,6 @@
 [project]
 name = "jeju-agent"
-version = "1.0.7"
+version = "1.1.0"
 description = "제주빅데이터센터 CSV를 정리하고 결합해 분석하는 로컬 에이전트"
 requires-python = ">=3.11"
 dependencies = [

@@ -43,10 +43,15 @@ https://github.com/user-attachments/assets/9d5a5a77-5464-4ebb-a330-0ef7943ae91f
 | Feature | What to expect |
 | --- | --- |
 | Read and clean UTF-8/CP949 CSV files | Distinguish missing values, suppressed values and subtotal rows |
+| Inspect CSV quality on desktop | Review counts by column and locate affected cells using original CSV line numbers |
+| Compare two desktop datasets | Confirm values, units and month/compatible-region keys; inspect unmatched keys on both sides and correlations for each region |
+| Reuse criteria within one desktop session | Explicitly bring across date, value, category and unit, then review the new file; clearing the workspace also clears reuse criteria |
 | Explore changes, shares and rankings | Review numeric columns and units before calculating |
 | Plan an analysis with a question | An optional model proposes a plan; code calculates the numbers. Manual selection works without a model |
 | Forecast monthly values | At least 24 months are required; includes 80% prediction intervals |
 | Print or save a one-page PDF | Keep selected conditions, a summary and supporting numbers together |
+
+Desktop reports also include the source SHA-256, selected criteria, rows used and monthly completeness. A confirmed comparison can be included with separate evidence IDs. Suppressed or empty values remain unknown; partial sums are excluded from correlation and forecasting. Longer reports can span multiple pages. Aggregate CSV export and permanent templates are not included.
 
 Forecasting starts with a seasonal baseline that repeats the same month's value. AutoETS or AutoARIMA is selected when it performs better on the validation period. Estimates are shown separately from observations. Insufficient history or missing months produce an explanation instead of a forecast.
 
