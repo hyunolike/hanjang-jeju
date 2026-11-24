@@ -74,7 +74,7 @@ jobs:
           $sw = [Diagnostics.Stopwatch]::StartNew()
           do { Start-Sleep 1; try { $h = Invoke-RestMethod http://127.0.0.1:8799/api/health } catch { $h = $null } } until ($h -or $sw.Elapsed.TotalSeconds -gt 120)
           if (-not $h) { throw "엔진이 120초 안에 켜지지 않았어요" }
-          $a = Invoke-RestMethod http://127.0.0.1:8799/api/datasets/center-1-19-dummy/analyze -TimeoutSec 300
+          $a = Invoke-RestMethod "http://127.0.0.1:8799/api/datasets/center-1-19-dummy/analyze?value=use_cnt&run_forecast=true" -TimeoutSec 300
           if (-not $a.forecast) { throw "예측 결과가 없어요" }
           "예측 방법: $($a.forecast.model)"
           $page = Invoke-WebRequest http://127.0.0.1:8799/ -UseBasicParsing
@@ -283,7 +283,7 @@ jobs:
           JEJU_WORKSPACE=$RUNNER_TEMP/ws $ENGINE --port 8797 &
           BASE_PID=$!
           for i in $(seq 1 120); do curl -sf http://127.0.0.1:8797/api/health && break; sleep 1; done
-          curl -sf -m 300 http://127.0.0.1:8797/api/datasets/center-1-19-dummy/analyze | python3 -c "import json,sys;d=json.load(sys.stdin);assert d['forecast'];print('예측 방법',d['forecast']['model'])"
+          curl -sf -m 300 "http://127.0.0.1:8797/api/datasets/center-1-19-dummy/analyze?value=use_cnt&run_forecast=true" | python3 -c "import json,sys;d=json.load(sys.stdin);assert d['forecast'];print('예측 방법',d['forecast']['model'])"
           curl -sf http://127.0.0.1:8797/ | grep -q "한 장 제주"
           kill "$BASE_PID" || true  # 미포함판 엔진은 끝내고 AI 포함판을 검사한다
       - name: AI 포함판 앱 안의 엔진과 AI 검사 (B05)
