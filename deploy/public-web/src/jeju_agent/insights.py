@@ -67,8 +67,12 @@ def year_over_year(frame, time, value, store: FactStore, unit="") -> Card | None
     now = store.add("level", series[last], unit, f"{ko_month(last)} 합계", period=str(last))
     before = store.add("level", series[prev], unit, f"{ko_month(prev)} 합계", period=str(prev))
     pct = store.add("change_pct", round(change, 1), "%", "전년 같은 달 대비", period=f"{prev}->{last}")
-    direction = "늘었어요" if change > 0 else "줄었어요"
-    return Card("change", f"{ko_month(last)}은 전년 같은 달보다 {abs(round(change, 1))}% {direction}", abs(change) / 10, [now, before, pct])
+    if change == 0:
+        title = f"{ko_month(last)}은 전년 같은 달과 비교해 변화가 없어요"
+    else:
+        direction = "늘었어요" if change > 0 else "줄었어요"
+        title = f"{ko_month(last)}은 전년 같은 달보다 {abs(round(change, 1))}% {direction}"
+    return Card("change", title, abs(change) / 10, [now, before, pct])
 
 
 def contributors(frame, time, category, value, store: FactStore, unit="", top=3) -> Card | None:
