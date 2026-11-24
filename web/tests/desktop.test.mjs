@@ -23,6 +23,7 @@ function component(file, overrides, globals = {}, staticMode = false) {
     '@/lib/utils': { cn: (...args) => args.filter(Boolean).join(' ') },
     '@/lib/format': { period: x => x, factText: String, money: String },
     './Analyze': { modelName: String },
+    '@/components/BusinessSummary': { BusinessSummary: 'BusinessSummary' },
     'sonner': { toast: { success() {}, error() {} } },
     ...overrides,
   }
@@ -262,4 +263,67 @@ test('a failed deletion keeps the report and cached data and shows an error', as
   assert.equal(cache.getQueryData(['understand', 'local']).retained, true)
   assert.equal(error, '지우지 못했어요')
   cache.clear()
+})
+
+test('web question editing invalidates callbacks from the previous model request', async () => {
+  let state = ['old question', null, {}, ''], cursor = 0
+  const generation = { current: 0 }
+  let release, currentOptions, request
+  const { WebAskPanel } = component('steps/WebAskPanel.tsx', {
+    react: { useRef: () => generation, useState: initial => { const i = cursor++; return [state[i] ?? initial, v => { state[i] = v }] } },
+    '@tanstack/react-query': {
+      useQuery: () => ({ data: { ready: true } }),
+      useMutation: options => { currentOptions = options; return { reset() {}, mutate: vars => { request = vars; release = value => options.onSuccess(value, vars) } } },
+    },
+    '@/lib/api': { api: {} },
+    '@/lib/upload': { discardPlan() {}, planUpload() {}, confirmUploadPlan() {} },
+  })
+  const render = () => { cursor = 0; return WebAskPanel({ dataset: { id: 'web-a' }, onRun: () => assert.fail('stale plan') }) }
+  find(render(), n => n.type === 'form').props.onSubmit({ preventDefault() {} })
+  const saved = request
+  find(render(), n => n.type === 'input').props.onChange({ target: { value: 'new question' } })
+  release({ execution_spec: {}, input_digest: 'old' })
+  currentOptions.onError(new Error('late failure'), saved)
+  assert.equal(state[1], null)
+  assert.equal(state[3], '')
+  assert.equal(state[0], 'new question')
+})
+
+test('business summary renders the server evidence and limits for report reuse', () => {
+  const { BusinessSummary } = component('components/BusinessSummary.tsx', {})
+  const b = { task: 'brief', status: 'limited', periods: { current: ['2024-07', '2024-08', '2024-09'], baseline: ['2023-07', '2023-08', '2023-09'] }, criteria: { time: 'date', value: 'sale_amt', category: null, unit: '원', filters: [] }, statements: [{ text: '검증된 요약', facts: ['F001'] }], limitations: [{ code: 'zero', message: '증감률 계산 불가' }], steps: [{ tool: 'quarter_compare', status: 'done' }] }
+  const tree = JSON.stringify(BusinessSummary({ result: b }))
+  assert.match(tree, /2024-07/)
+  assert.match(tree, /2023-09/)
+  assert.match(tree, /F001/)
+  assert.match(tree, /증감률 계산 불가/)
+  assert.match(tree, /검증된 요약/)
+})
+
+test('editing a web question invalidates report export of the old result', () => {
+  const tags = names => Object.fromEntries(names.map(name => [name, name]))
+  const a = { dataset: { title: 'synthetic' }, value: { name: 'sale_amt', ko: '매출', unit: '원' }, category: null, options: { values: ['sale_amt'], categories: [] }, series: [], cards: [], facts: {}, forecast: null, missing_months: [], filters: [], business: { task: 'brief' } }
+  let state = [null, null], cursor = 0, exports = 0
+  const { Analyze } = component('steps/Analyze.tsx', {
+    react: { useMemo: fn => fn(), useState: initial => { const i = cursor++; return [state[i] ?? initial, v => { state[i] = v }] } },
+    '@tanstack/react-query': { useQuery: () => ({ data: a }) },
+    '@/lib/api': { STATIC: false, WEB_UPLOAD: true, api: {} },
+    '@/lib/selection': selection,
+    '@/components/form': tags(['ActionFeedback']),
+    '@/components/ui/chart': tags(['ChartContainer', 'ChartTooltip', 'ChartTooltipContent']),
+    './CenterJoinPanel': tags(['CenterJoinPanel']), './WebAskPanel': tags(['WebAskPanel']), './AskPanel': tags(['AskPanel']), './JoinPanel': tags(['JoinPanel']),
+    recharts: tags(['Area', 'CartesianGrid', 'ComposedChart', 'Line', 'XAxis', 'YAxis']),
+  })
+  const render = () => { cursor = 0; return Analyze({ dataset: { id: 'web-a', source: 'upload' }, choice: { agent_digest: 'old' }, onChange() {}, onNext: () => exports++ }) }
+  let tree = render()
+  assert.equal(find(tree, n => n.type === 'Button' && n.props.children === '예측도 계산하기'), undefined)
+  const panel = find(tree, n => n.type === 'WebAskPanel')
+  assert.equal(typeof panel.props.onInvalidate, 'function')
+  panel.props.onInvalidate()
+  tree = render()
+  const report = find(tree, n => n.type === 'Button' && n.props.children === '결과 한 장 만들기')
+  assert.equal(report.props.disabled, true)
+  report.props.onClick()
+  assert.equal(exports, 0)
+  assert.equal(find(tree, n => n.type === 'BusinessSummary'), undefined)
 })

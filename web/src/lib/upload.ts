@@ -1,11 +1,12 @@
-import type { Analysis, AnalyzeOptions, Dataset, ModelStatus, PlanResult, Understanding } from "./api"
+import type { BusinessTask, BusinessPreview, Analysis, AnalyzeOptions, Dataset, ModelStatus, PlanResult, Understanding } from "./api"
 
 export type ExecutionSpec = {
   time: string; value: string; category: string | null; unit: string; additive_confirmed: boolean
+  business_task?: BusinessTask | null; plan_origin?: "model" | "recipe" | null
   intent: "overview" | "compare" | "share" | "rank" | "forecast"
   filters: { column: string; values: string[] }[]; period_n: number; horizon: number; run_forecast: boolean; tools?: string[]
 }
-export type WebPlan = PlanResult & { execution_spec: ExecutionSpec; input_digest: string }
+export type WebPlan = PlanResult & { execution_spec: ExecutionSpec; input_digest: string; business_preview?: BusinessPreview; plan_origin?: "model" | "recipe" }
 type Entry = { file: File; dataset: Dataset; info?: Understanding; spec?: ExecutionSpec; plan?: WebPlan; question?: string; revision: number }
 let current: Entry | undefined
 const running = new Set<AbortController>()
@@ -97,13 +98,13 @@ export function discardPlan(id: string) {
   e.question = undefined
 }
 
-export async function planUpload(id: string, question: string, edited?: ExecutionSpec): Promise<WebPlan> {
+export async function planUpload(id: string, question: string, edited?: ExecutionSpec, task?: BusinessTask): Promise<WebPlan> {
   const e = entry(id)
   if (!e.spec) throw new Error("분석할 날짜와 값 열을 먼저 골라 주세요.")
   e.revision += 1
   e.question = question
   e.plan = undefined
-  const result = await post<WebPlan>("plan", e, { options: JSON.stringify(e.spec), question, ...(edited ? { edited_spec: JSON.stringify(edited) } : {}) })
+  const result = await post<WebPlan>("plan", e, { options: JSON.stringify(e.spec), question, ...(task ? { business_task: task } : {}), ...(edited ? { edited_spec: JSON.stringify(edited) } : {}) })
   e.plan = undefined // 확인 버튼을 누르기 전까지 실행하지 않는다.
   e.question = question
   return result
@@ -120,7 +121,7 @@ export async function analyzeUpload(id: string, choice: AnalyzeOptions): Promise
   if (!e.spec) throw new Error("분석할 열을 먼저 골라 주세요.")
   if (choice.agent_digest && (!e.plan || choice.agent_digest !== e.plan.input_digest)) throw new Error("이전 계획을 사용할 수 없어요. 질문과 계획을 다시 확인해 주세요.")
   const fields: Record<string, string> = e.plan && choice.agent_digest === e.plan.input_digest
-    ? { mode: "agent", question: e.question!, execution_spec: JSON.stringify(e.plan.execution_spec), input_digest: e.plan.input_digest, confirmed: "true" }
+    ? { mode: e.plan.execution_spec.plan_origin === "recipe" ? "business" : "agent", question: e.question!, execution_spec: JSON.stringify(e.plan.execution_spec), input_digest: e.plan.input_digest, confirmed: "true" }
     : { mode: "manual", options: JSON.stringify({ ...e.spec, ...(choice.value ? { value: choice.value } : {}), ...(choice.category !== undefined ? { category: choice.category } : {}), ...(choice.run_forecast !== undefined ? { run_forecast: choice.run_forecast, tools: [] } : {}) }) }
   if (!choice.agent_digest) e.plan = undefined
   const result = await post<Analysis>("analyze", e, fields)

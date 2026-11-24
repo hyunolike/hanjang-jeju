@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts"
 import { BarChart3, CalendarRange, CalendarX, Lightbulb, TrendingUp } from "lucide-react"
 import { api, STATIC, WEB_UPLOAD, type Analysis, type AnalyzeOptions, type Card, type Dataset, type JoinResult } from "@/lib/api"
+import { BusinessSummary } from "@/components/BusinessSummary"
 import { WebAskPanel } from "./WebAskPanel"
 import { canOfferForecast } from "@/lib/selection"
 import { BigTitle, CtaBar, Illust, Panel, Pill, Stat } from "@/components/kit"
@@ -47,6 +48,8 @@ export function Analyze({
   const a = q.data
   const signature = JSON.stringify([dataset.id, choice])
   const [comparison, setComparison] = useState<{ signature: string; result: JoinResult } | null>(null)
+  const [invalidatedFor, setInvalidatedFor] = useState<string | null>(null)
+  const resultStale = invalidatedFor === signature
   const selectedComparison = comparison?.signature === signature ? comparison.result : undefined
   const chart = useMemo(() => (a && !a.error ? chartData(a) : []), [a])
   if (q.isLoading) return <StageLoading stage="analyze" />
@@ -65,14 +68,14 @@ export function Analyze({
 
   const unit = a.value.unit
   const lead = a.cards[0]
-  const offerForecast = uploaded
+  const offerForecast = !a.business && (uploaded
     ? canOfferForecast(a)
-    : !STATIC && !a.forecast && !choice.run_forecast && choice.intent !== "forecast"
+    : !STATIC && !a.forecast && !choice.run_forecast && choice.intent !== "forecast")
 
   return (
     <div className="space-y-5">
-      <StageIntro stage="analyze" title={a.answer ? a.answer.title : lead ? lead.title : "자료의 월별 흐름을 살펴보세요"} description={`${a.value.ko}${unit && !a.value.ko.includes(unit) ? ` (${unit})` : ""} 기준이에요. ${a.answer ? "확인한 질문에 맞춰 계산했어요." : "계산한 흐름과 눈에 띄는 변화를 모았어요."}`} />
-      {a.execution && <p className="text-[14px] text-muted-foreground">{a.execution.mode === "agent" ? `확인한 질문: ${a.execution.question}` : "직접 선택한 열로 분석한 결과예요."} {a.execution.verified ? "숫자 근거를 확인했어요." : ""}</p>}
+      <StageIntro stage="analyze" title={a.business ? "질문에 맞춘 업무 분석 결과예요" : a.answer ? a.answer.title : lead ? lead.title : "자료의 월별 흐름을 살펴보세요"} description={`${a.value.ko}${unit && !a.value.ko.includes(unit) ? ` (${unit})` : ""} 기준이에요. ${a.answer ? "확인한 질문에 맞춰 계산했어요." : "계산한 흐름과 눈에 띄는 변화를 모았어요."}`} />
+      {a.execution && <p className="text-[14px] text-muted-foreground">{a.execution.mode === "business" ? `검토된 절차로 직접 분석: ${a.execution.question}` : a.execution.mode === "agent" ? `확인한 질문: ${a.execution.question}` : "직접 선택한 열로 분석한 결과예요."} {a.execution.verified ? "숫자 근거를 확인했어요." : ""}</p>}
 
       {!uploaded && <div className="no-print flex flex-wrap gap-2">
         <Select value={a.value.name} onValueChange={(v) => onChange({ value: v as string, category: a.category })}>
@@ -104,6 +107,9 @@ export function Analyze({
         )}
       </div>}
 
+      {resultStale && <p role="status" className="rounded-xl border border-border p-4">질문이 바뀌어 이전 결과를 숨겼어요. 새 계획을 확인해 실행하거나 이전 단계에서 분석 기준을 다시 골라 주세요.</p>}
+      {!resultStale && <>
+      {a.business && <BusinessSummary result={a.business} />}
       {a.answer && (
         <Panel title="질문에 대한 답" action={<Pill tone="teal">근거 {a.answer.facts.join(", ")}</Pill>}>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -193,9 +199,10 @@ export function Analyze({
         </Panel>
       )}
 
+      </>}
       <section className="no-print space-y-4" aria-label="더 살펴보기">
         <h2 className="px-1 text-[19px] font-bold">더 궁금한 점이 있나요?</h2>
-        {uploaded ? <WebAskPanel key={`${dataset.id}-${JSON.stringify({ value: choice.value, category: choice.category })}`} dataset={dataset} onRun={onChange} /> : <AskPanel dataset={dataset} onRun={onChange} />}
+        {uploaded ? <WebAskPanel key={`${dataset.id}-${JSON.stringify({ value: choice.value, category: choice.category })}`} dataset={dataset} onInvalidate={() => setInvalidatedFor(signature)} onRun={options => { setInvalidatedFor(null); onChange(options) }} /> : <AskPanel dataset={dataset} onRun={onChange} />}
         {uploaded ? <p className="px-1 text-[14px] leading-relaxed text-muted-foreground">분석할 열은 이전 단계에서 바꿀 수 있어요. 자료 결합은 PC용 프로그램에서 이용할 수 있어요.</p> : STATIC || WEB_UPLOAD ? <JoinPanel dataset={a.dataset} value={a.value.name} /> : <CenterJoinPanel key={signature} analysis={a} included={!!selectedComparison} onInclude={result => setComparison(result ? { signature, result } : null)} />}
       </section>
 
@@ -203,7 +210,7 @@ export function Analyze({
         <Button variant="soft" size="cta" className="flex-1 sm:flex-none" onClick={onBack}>
           이전
         </Button>
-        <Button size="cta" className="flex-[2]" onClick={() => onNext({ ...a, comparison: selectedComparison })}>
+        <Button size="cta" className="flex-[2]" disabled={resultStale} onClick={() => { if (!resultStale) onNext({ ...a, comparison: selectedComparison }) }}>
           결과 한 장 만들기
         </Button>
       </CtaBar>

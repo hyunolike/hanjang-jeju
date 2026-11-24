@@ -49,10 +49,24 @@ export type Forecast = {
   fact: string
 }
 
+export type BusinessTask = "quarter_compare" | "category_change" | "brief"
+export type BusinessPreview = {
+  task: BusinessTask; status: "complete" | "limited" | "blocked"
+  periods: { current: string[]; baseline: string[] }
+  criteria: { time: string; value: string; category: string | null; unit: string; filters: { column: string; values: string[] }[] }
+  limitations: { code: string; message: string }[]
+  steps: { tool: string; status: "done" | "skipped" | "blocked"; reason?: string }[]
+}
+export type BusinessResult = BusinessPreview & {
+  statements: { text: string; facts: string[] }[]
+  groups: { label: string; current: number; baseline: number; delta: number; facts: string[] }[]
+  totals: { current?: number; baseline?: number; delta?: number; change_pct?: number | null }
+}
 export type Analysis = {
+  business?: BusinessResult
   processing?: ProcessingRecord
   comparison?: JoinResult
-  execution?: { mode: "manual" | "agent"; question: string | null; tools: string[]; verified: boolean }
+  execution?: { mode: "manual" | "agent" | "business"; question: string | null; tools: string[]; verified: boolean }
   dataset: Dataset
   error?: string
   value: { name: string; ko: string; unit: string; additive: boolean | null; note: string }

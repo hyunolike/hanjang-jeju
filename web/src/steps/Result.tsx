@@ -7,6 +7,7 @@ import { StageIntro } from "@/components/stage"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { factText, money, period } from "@/lib/format"
+import { BusinessSummary } from "@/components/BusinessSummary"
 import { modelName } from "./Analyze"
 
 export function Result({ analysis: a, onBack, onDone }: { analysis: Analysis; onBack: () => void; onDone: () => void }) {
@@ -30,7 +31,8 @@ export function Result({ analysis: a, onBack, onDone }: { analysis: Analysis; on
           <Illust name="report" fallback={FileCheck2} className="size-14" />
         </div>
 
-        <section>
+        {a.business && <BusinessSummary result={a.business} />}
+        {!a.business && <section>
           <h3 className="mb-2 text-[15px] font-bold text-[var(--grey-700)]">요약</h3>
           <ol className="list-decimal space-y-1.5 pl-5 text-[16px] leading-relaxed">
             {a.answer && a.answer.facts.length > 0 && (
@@ -50,7 +52,7 @@ export function Result({ analysis: a, onBack, onDone }: { analysis: Analysis; on
             )}
             {a.forecast_refusal && <li>추정하지 않았어요. {a.forecast_refusal}</li>}
           </ol>
-        </section>
+        </section>}
 
         <section>
           <h3 className="mb-2 text-[15px] font-bold text-[var(--grey-700)]">숫자 근거</h3>

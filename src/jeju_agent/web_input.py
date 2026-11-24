@@ -39,9 +39,25 @@ class ExecutionSpec(BaseModel):
     horizon: int = Field(default=6, ge=1, le=12)
     run_forecast: bool = False
     tools: list[str] = Field(default_factory=list)
+    business_task: Literal["quarter_compare", "category_change", "brief"] | None = None
+    plan_origin: Literal["model", "recipe"] | None = None
 
     @model_validator(mode="after")
     def validate_tools(self):
+        if self.business_task:
+            if self.plan_origin is None or self.intent != "overview" or self.period_n or self.run_forecast:
+                raise ValueError("업무 분석의 종류와 실행 조건을 확인해 주세요")
+            expected = ["quarter_compare"]
+            if self.business_task != "quarter_compare":
+                expected.append("category_change")
+            if self.business_task == "brief":
+                expected.append("brief")
+            if self.tools and self.tools != expected:
+                raise ValueError("허용되지 않은 업무 도구예요")
+            self.tools = expected
+            return self
+        if self.plan_origin is not None:
+            raise ValueError("업무 분석에만 계획 출처를 지정할 수 있어요")
         expected = ["overview"]
         if self.intent in {"compare", "share", "rank"}:
             expected.append(self.intent)

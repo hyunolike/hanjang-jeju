@@ -54,3 +54,28 @@ test("forecast is requested after the first overview without using an old agent 
   assert.equal(options.run_forecast, true)
   assert.equal(request.body.get("mode"), "manual")
 })
+
+test('recipe plan uses business mode and binds chosen task', async () => {
+  let request
+  const business = { ...fakePlan, plan_origin: 'recipe', execution_spec: { ...spec, business_task: 'brief', plan_origin: 'recipe', tools: ['quarter_compare', 'category_change', 'brief'] } }
+  globalThis.fetch = (url, init) => { request = init; return response(url.endsWith('plan') ? business : info) }
+  const ds = await uploadFile(file())
+  await selectUpload(ds.id, spec)
+  const plan = await planUpload(ds.id, '보고용 정리', undefined, 'brief')
+  assert.equal(request.body.get('business_task'), 'brief')
+  confirmUploadPlan(ds.id, plan, '보고용 정리')
+  await analyzeUpload(ds.id, { agent_digest: plan.input_digest })
+  assert.equal(request.body.get('mode'), 'business')
+  assert.equal(JSON.parse(request.body.get('execution_spec')).plan_origin, 'recipe')
+})
+
+test('replacing a recipe rejects the old plan response', async () => {
+  let release
+  globalThis.fetch = url => url.endsWith('plan') ? new Promise(resolve => { release = () => resolve(new Response(JSON.stringify(fakePlan))) }) : response(info)
+  const ds = await uploadFile(file())
+  await selectUpload(ds.id, spec)
+  const old = planUpload(ds.id, '보고용 정리', undefined, 'brief')
+  discardPlan(ds.id)
+  release()
+  await assert.rejects(old, /변경|질문/)
+})
