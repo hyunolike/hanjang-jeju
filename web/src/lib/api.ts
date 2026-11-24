@@ -50,6 +50,8 @@ export type Forecast = {
 }
 
 export type Analysis = {
+  processing?: ProcessingRecord
+  comparison?: JoinResult
   execution?: { mode: "manual" | "agent"; question: string | null; tools: string[]; verified: boolean }
   dataset: Dataset
   error?: string
@@ -91,10 +93,28 @@ export type ModelStatus = { available: boolean; ready: boolean; model: string; b
 export type AnalyzeOptions = { value?: string; category?: string | null; intent?: Intent; filters?: Plan["filters"]; period_n?: number; horizon?: number; agent_digest?: string; run_forecast?: boolean }
 
 export type JoinResult = {
-  report: { left_rows: number; matched_rows: number; unmatched_rows: number; unmatched_keys: string[]; multi_match_keys: string[] }
+  plan?: { left: ComparisonSource; right: ComparisonSource; region_basis: string; aggregation: string }
+  groups?: { region: string; months: number; correlation: number | null; refusal: string | null; fact: string }[]
+  report: { left_rows: number; matched_rows: number; unmatched_rows: number; unmatched_keys: (string | string[])[]; multi_match_keys: (string | string[])[]; right_rows?: number; right_unmatched_rows?: number; right_unmatched_keys?: (string | string[])[]; key_columns?: string[] }
   facts: Record<string, Omit<Fact, "value"> & { value: number | null }>
   correlation_refusal?: string | null
   note: string
+}
+
+export type ComparisonSource = Dataset & { time: string; value: string; unit: string; region: string | null; filters: Plan['filters']; used_rows: number; source_sha256: string | null; source_bytes: number | null }
+export type JoinOptions = { left_region?: string; right_region?: string; left_filters?: Plan['filters'] }
+export type ProcessingRecord = {
+  source_sha256: string | null; source_bytes: number | null; version: string
+  time: string; value: string; category: string | null; unit: string; filters: Plan['filters']
+  input_rows: number; clean_rows: number; used_rows: number; subtotal_rows: number; masked_cells: number; empty_cells: number
+  aggregation: string; missing_policy: string; forecast_requested: boolean
+  monthly_quality: { period: string; valid_rows: number; masked_rows: number; empty_rows: number; partial: boolean }[]
+}
+export type QualityOptions = { time?: string; value?: string; kind?: string; column?: string; offset?: number; limit?: number }
+export type QualityResult = {
+  complete: boolean; error: { line: number; message: string } | null; encoding: string; rows: number; clean_rows: number; affected_rows: number
+  counts: Record<string, number>; columns: { name: string; counts: Record<string, number> }[]; matched_issues: number; offset: number; limit: number
+  issues: { kind: string; column: string | null; line: number; line_end: number; before: string | null; after: string | null; truncated: boolean; message: string }[]
 }
 
 async function get<T>(url: string, options?: RequestInit): Promise<T> {
@@ -110,6 +130,7 @@ const S = "/static-api"
 const k = (v?: string | null) => v || "_"
 
 const staticApi = {
+  quality: async (_id: string, _options: QualityOptions = {}): Promise<QualityResult> => { void _id; void _options; throw new Error('품질 상세는 PC용 프로그램에서 볼 수 있어요.') },
   selectDataset: async (_id: string, _spec: Partial<ExecutionSpec>) => { void _id; void _spec; throw new Error("PC용 프로그램에서 분석할 항목을 골라 주세요.") },
   datasets: () => get<Dataset[]>(`${S}/datasets.json`),
   understand: (id: string) => get<Understanding>(`${S}/understand/${id}.json`),
@@ -134,6 +155,7 @@ const staticApi = {
 }
 
 const serverApi = {
+  quality: (id: string, options: QualityOptions = {}) => get<QualityResult>(`/api/datasets/${id}/quality?${new URLSearchParams(Object.entries(options).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)]))}`),
   selectDataset: async (id: string, spec: Partial<ExecutionSpec>) => {
     const res = await fetch(`/api/datasets/${id}/selection`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(spec) })
     const body = await res.json().catch(() => null)
@@ -159,8 +181,13 @@ const serverApi = {
     if (!res.ok) throw new Error((await res.json().catch(() => null))?.detail ?? "계획을 만들지 못했어요.")
     return (await res.json()) as PlanResult
   },
-  join: (left: string, leftValue: string, right: string, rightValue: string) =>
-    get<JoinResult>(`/api/join?${new URLSearchParams({ left, left_value: leftValue, right, right_value: rightValue })}`),
+  join: (left: string, leftValue: string, right: string, rightValue: string, options: JoinOptions = {}) => {
+    const q = new URLSearchParams({ left, left_value: leftValue, right, right_value: rightValue })
+    if (options.left_region) q.set('left_region', options.left_region)
+    if (options.right_region) q.set('right_region', options.right_region)
+    if (options.left_filters?.length) q.set('left_filters', JSON.stringify(options.left_filters))
+    return get<JoinResult>(`/api/join?${q}`)
+  },
   upload: async (file: File) => {
     const body = new FormData()
     body.append("file", file)

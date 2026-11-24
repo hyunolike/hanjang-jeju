@@ -1,8 +1,8 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts"
 import { BarChart3, CalendarRange, CalendarX, Lightbulb, TrendingUp } from "lucide-react"
-import { api, STATIC, WEB_UPLOAD, type Analysis, type AnalyzeOptions, type Card, type Dataset } from "@/lib/api"
+import { api, STATIC, WEB_UPLOAD, type Analysis, type AnalyzeOptions, type Card, type Dataset, type JoinResult } from "@/lib/api"
 import { WebAskPanel } from "./WebAskPanel"
 import { canOfferForecast } from "@/lib/selection"
 import { BigTitle, CtaBar, Illust, Panel, Pill, Stat } from "@/components/kit"
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { factText, money, period } from "@/lib/format"
 import { JoinPanel } from "./JoinPanel"
 import { AskPanel } from "./AskPanel"
+import { CenterJoinPanel } from './CenterJoinPanel'
 
 const CARD_ICON: Record<Card["kind"], { name: string; icon: typeof Lightbulb; tag: string }> = {
   change: { name: "insight", icon: TrendingUp, tag: "변화" },
@@ -44,6 +45,9 @@ export function Analyze({
   const uploaded = WEB_UPLOAD && dataset.source === "upload"
   const q = useQuery({ queryKey: ["analyze", dataset.id, JSON.stringify(choice)], queryFn: () => api.analyze(dataset.id, choice), retry: uploaded ? false : 1 })
   const a = q.data
+  const signature = JSON.stringify([dataset.id, choice])
+  const [comparison, setComparison] = useState<{ signature: string; result: JoinResult } | null>(null)
+  const selectedComparison = comparison?.signature === signature ? comparison.result : undefined
   const chart = useMemo(() => (a && !a.error ? chartData(a) : []), [a])
   if (q.isLoading) return <StageLoading stage="analyze" />
   if (q.error || !a) return <div className="space-y-5"><BigTitle eyebrow="3단계 발견 보기" title="분석 결과를 불러오지 못했어요" /><ActionFeedback tone="danger" title="분석 기준을 다시 확인해 주세요" description={(q.error as Error)?.message || "잠시 뒤 다시 분석해 주세요."} /><CtaBar><Button size="cta" className="w-full" onClick={onBack}>분석 기준으로 돌아가기</Button></CtaBar></div>
@@ -116,6 +120,7 @@ export function Analyze({
       {a.filters?.length > 0 && (
         <p className="text-[14px] text-muted-foreground">조건: {a.filters.map((f) => f.values.join(", ")).join(" / ")}</p>
       )}
+      {a.processing?.monthly_quality.some(m => m.partial) && <p role="status" className="rounded-xl bg-[var(--caution-50)] p-4 text-[14px] text-[var(--caution)]">가림값이나 빈값이 있는 달이 있어요. 아래 숫자는 관측한 값만 더한 부분합일 수 있어요. 보고서의 월별 품질에서 빠진 행 수를 확인해 주세요.</p>}
 
       <Panel title="흐름" action={a.forecast ? <Pill tone="violet">추정 포함</Pill> : undefined}>
         <ChartContainer config={chartConfig} className="h-[280px] w-full">
@@ -191,14 +196,14 @@ export function Analyze({
       <section className="no-print space-y-4" aria-label="더 살펴보기">
         <h2 className="px-1 text-[19px] font-bold">더 궁금한 점이 있나요?</h2>
         {uploaded ? <WebAskPanel key={`${dataset.id}-${JSON.stringify({ value: choice.value, category: choice.category })}`} dataset={dataset} onRun={onChange} /> : <AskPanel dataset={dataset} onRun={onChange} />}
-        {uploaded ? <p className="px-1 text-[14px] leading-relaxed text-muted-foreground">분석할 열은 이전 단계에서 바꿀 수 있어요. 자료 결합은 PC용 프로그램에서 이용할 수 있어요.</p> : <JoinPanel dataset={a.dataset} value={a.value.name} />}
+        {uploaded ? <p className="px-1 text-[14px] leading-relaxed text-muted-foreground">분석할 열은 이전 단계에서 바꿀 수 있어요. 자료 결합은 PC용 프로그램에서 이용할 수 있어요.</p> : STATIC || WEB_UPLOAD ? <JoinPanel dataset={a.dataset} value={a.value.name} /> : <CenterJoinPanel key={signature} analysis={a} included={!!selectedComparison} onInclude={result => setComparison(result ? { signature, result } : null)} />}
       </section>
 
       <CtaBar>
         <Button variant="soft" size="cta" className="flex-1 sm:flex-none" onClick={onBack}>
           이전
         </Button>
-        <Button size="cta" className="flex-[2]" onClick={() => onNext(a)}>
+        <Button size="cta" className="flex-[2]" onClick={() => onNext({ ...a, comparison: selectedComparison })}>
           결과 한 장 만들기
         </Button>
       </CtaBar>

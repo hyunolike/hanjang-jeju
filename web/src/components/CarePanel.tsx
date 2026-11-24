@@ -16,11 +16,12 @@ export function CarePanel({ onCleared }: { onCleared: () => void }) {
   const auto = useMutation({ mutationFn: api.setAutoDelete, onSuccess: () => qc.invalidateQueries({ queryKey: ["selfcheck"] }) })
   const clear = useMutation({
     mutationFn: api.clearWorkspace,
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
       toast.success(r.removed ? `내 자료 ${r.removed}개를 지웠어요` : "지울 자료가 없어요")
       setConfirm(false)
-      qc.removeQueries({ queryKey: ["understand"] })
-      qc.removeQueries({ queryKey: ["analyze"] })
+      const related = (q: { queryKey: readonly unknown[] }) => ['datasets', 'understand', 'analyze', 'quality', 'comparison'].includes(String(q.queryKey[0]))
+      await qc.cancelQueries({ predicate: related })
+      qc.removeQueries({ predicate: related })
       qc.invalidateQueries()
       onCleared()
     },

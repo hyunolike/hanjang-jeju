@@ -58,7 +58,7 @@ export function JoinPanel({ dataset, value }: { dataset: Dataset; value: string 
           {r.correlation_refusal && <p className="text-[14px] text-muted-foreground">{r.correlation_refusal}</p>}
           {r.report.unmatched_keys.length > 0 && (
             <div className="rounded-2xl bg-[var(--caution-50)] p-4 text-[15px] leading-relaxed text-[var(--caution)]">
-              <b>{r.report.unmatched_keys.map((k) => period(`${k.slice(0, 4)}-${k.slice(4)}`)).join(", ")}</b>은 {other?.title}에 없어서 붙이지 못했어요. 이 달은 비교에서 빠져요.
+              <b>{r.report.unmatched_keys.map((key) => { const k = String(key); return period(`${k.slice(0, 4)}-${k.slice(4)}`) }).join(", ")}</b>은 {other?.title}에 없어서 붙이지 못했어요. 이 달은 비교에서 빠져요.
             </div>
           )}
           <p className="text-[14px] text-muted-foreground">

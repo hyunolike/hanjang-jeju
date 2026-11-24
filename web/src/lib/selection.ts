@@ -25,6 +25,19 @@ export function selectionReady(profile: UploadProfile, time: string, value: stri
 }
 
 export type SelectionDraft = { time: string; value: string; category: string; unit: string }
+export type ReusableSelection = Pick<SelectionDraft, 'time' | 'value' | 'category' | 'unit'>
+
+export function reusableSelection(previous: ReusableSelection, profile: UploadProfile) {
+  const missing: string[] = []
+  const time = profile.time_candidates.includes(previous.time) ? previous.time : ''
+  if (!time && previous.time) missing.push(previous.time)
+  const column = profile.columns.find(c => c.name === previous.value)
+  const value = availableValues(profile, time).includes(previous.value) && column?.additive !== false && previous.value !== time ? previous.value : ''
+  if (!value && previous.value) missing.push(previous.value)
+  const category = previous.category && profile.category_candidates.includes(previous.category) && previous.category !== time && previous.category !== value ? previous.category : ''
+  if (!category && previous.category) missing.push(previous.category)
+  return { draft: { time, value, category, unit: value ? previous.unit : '' }, missing }
+}
 export type ValueMeaning = "" | "sum" | "nonadditive"
 
 export function availableValues(profile: UploadProfile, time: string) {

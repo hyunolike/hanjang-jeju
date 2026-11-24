@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { clearUpload } from "@/lib/upload"
+import type { ReusableSelection } from '@/lib/selection'
 import { Check, WifiOff } from "lucide-react"
 import { STATIC, WEB_UPLOAD, type Analysis, type AnalyzeOptions, type Dataset } from "@/lib/api"
 import { Pill } from "@/components/kit"
@@ -21,6 +22,7 @@ export default function App() {
   const [dataset, setDataset] = useState<Dataset | null>(null)
   const [choice, setChoice] = useState<AnalyzeOptions>({})
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [previousSelection, setPreviousSelection] = useState<ReusableSelection | null>(null)
   const [direction, setDirection] = useState<"forward" | "back">("forward")
   const mainRef = useRef<HTMLElement>(null)
   const lastFocusedStep = useRef(step)
@@ -60,6 +62,8 @@ export default function App() {
                 onCleared={() => {
                   setDataset(null)
                   setAnalysis(null)
+                  setChoice({})
+                  setPreviousSelection(null)
                   go(0)
                 }}
               />
@@ -92,7 +96,7 @@ export default function App() {
             }}
           />
         )}
-        {step === 1 && dataset && <Understand key={dataset.id} dataset={dataset} onBack={() => go(0)} onNext={() => { setChoice({}); setAnalysis(null); go(2) }} />}
+        {step === 1 && dataset && <Understand key={dataset.id} dataset={dataset} previousSelection={previousSelection} onBack={() => go(0)} onNext={(s) => { if (s && !STATIC && !WEB_UPLOAD) setPreviousSelection({ time: s.time, value: s.value, category: s.category ?? '', unit: s.unit }); setChoice({}); setAnalysis(null); go(2) }} />}
         {step === 2 && dataset && (
           <Analyze
             dataset={dataset}
@@ -112,12 +116,14 @@ export default function App() {
             onDone={() => {
               setDataset(null)
               setAnalysis(null)
+              setChoice({})
+              setPreviousSelection(null)
               go(0)
             }}
           />
         )}
       </main>
-      <Toaster position="top-center" />
+      <Toaster position="top-center" className="toaster group no-print" />
     </div>
   )
 }

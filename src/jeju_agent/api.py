@@ -8,7 +8,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi import FastAPI, HTTPException, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -21,7 +21,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel
 
-from . import aipack, llm, paths, pipeline, planner, privacy, web_input, web_profile
+from . import aipack, llm, paths, pipeline, planner, privacy, quality, web_input, web_profile
 
 
 @asynccontextmanager
@@ -210,6 +210,22 @@ def select_dataset(dataset_id: str, spec: web_input.ExecutionSpec) -> dict:
     return {"selection": metadata["selection"]}
 
 
+@app.get("/api/datasets/{dataset_id}/quality")
+def dataset_quality(dataset_id: str, time: str | None = None, value: str | None = None,
+                    kind: str | None = None, column: str | None = None,
+                    offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100)) -> dict:
+    ds = _dataset(dataset_id)
+    selected = ds.selection or {}
+    try:
+        return quality.inspect(ds.path.read_bytes(), time=time or selected.get("time"),
+                               value=value or selected.get("value"), kind=kind, column=column,
+                               offset=offset, limit=limit)
+    except FileNotFoundError:
+        raise HTTPException(404, "이 자료는 지워졌어요. CSV를 다시 넣어 주세요.") from None
+    except ValueError as err:
+        raise HTTPException(422, str(err)) from None
+
+
 @app.get("/api/datasets/{dataset_id}/analyze")
 def analyze(
     dataset_id: str,
@@ -237,13 +253,17 @@ def analyze(
     if intent not in planner.INTENTS:
         intent = None
     horizon = min(max(int(horizon), 1), 12)
-    return pipeline.analyze(ds, value, category, horizon=horizon, filters=parsed, intent=intent, period_n=period_n, run_forecast=run_forecast)
+    return pipeline.analyze(ds, value, category, horizon=horizon, filters=parsed, intent=intent, period_n=period_n, run_forecast=run_forecast, include_processing=True)
 
 
 @app.get("/api/join")
-def join(left: str, left_value: str, right: str, right_value: str) -> dict:
+def join(left: str, left_value: str, right: str, right_value: str,
+         left_region: str | None = None, right_region: str | None = None,
+         left_filters: str | None = None) -> dict:
     try:
-        return pipeline.join_monthly(_dataset(left), left_value, _dataset(right), right_value)
+        filters = json.loads(left_filters) if left_filters is not None else []
+        return pipeline.join_monthly(_dataset(left), left_value, _dataset(right), right_value,
+                                     left_region=left_region, right_region=right_region, left_filters=filters)
     except ValueError as err:
         raise HTTPException(422, str(err)) from None
 

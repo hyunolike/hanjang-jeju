@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Download } from "lucide-react"
-import { api, WEB_UPLOAD, type Dataset, type Understanding, type UploadProfile } from "@/lib/api"
+import { api, STATIC, WEB_UPLOAD, type Dataset, type Understanding, type UploadProfile } from "@/lib/api"
 import { selectUpload, uploadSelection, UploadRequestError, type ExecutionSpec } from "@/lib/upload"
-import { assignSelection, availableTimes, availableValues, columnLabel, EXAMPLE_CSV, hasAnalysisPair, initialSelection, nextSelectionStep, type ValueMeaning } from "@/lib/selection"
+import { assignSelection, availableTimes, availableValues, columnLabel, EXAMPLE_CSV, hasAnalysisPair, initialSelection, nextSelectionStep, reusableSelection, type ReusableSelection, type ValueMeaning } from "@/lib/selection"
+import { QualityPanel } from './QualityPanel'
 import { ActionFeedback, FormField } from "@/components/form"
 import { Panel, Pill } from "@/components/kit"
 import { Button } from "@/components/ui/button"
 import { period } from "@/lib/format"
 
-type Props = { dataset: Dataset; info: Understanding; onNext: () => void; onBack: () => void }
+type Props = { dataset: Dataset; info: Understanding; previousSelection?: ReusableSelection | null; onNext: (selection?: ExecutionSpec) => void; onBack: () => void }
 
 export function WebSelection(props: Props) {
   const profile = props.info.upload_profile
@@ -26,7 +27,7 @@ function downloadExample() {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-function UnsupportedSelection({ profile, onBack }: { profile: UploadProfile; onBack: () => void }) {
+function UnsupportedSelection({ profile, onBack, id }: { profile: UploadProfile; onBack: () => void; id: string }) {
   const date = profile.columns.find(c => c.name === profile.recommended.time) ?? profile.columns.find(c => c.date_status === "valid")
   const noDates = profile.time_candidates.length === 0
   const badDate = profile.columns.find(c => c.date_status === "invalid" || c.date_status === "too_long")
@@ -42,13 +43,16 @@ function UnsupportedSelection({ profile, onBack }: { profile: UploadProfile; onB
     {date && <div className="mb-5 flex flex-wrap items-center gap-2 text-[16px]"><Pill tone="teal">날짜 항목</Pill><span>{date.name}</span>{date.first && date.last && <span className="text-[14px] text-muted-foreground">{period(date.first)} ~ {period(date.last)}</span>}</div>}
     <ActionFeedback tone="caution" title={title} description={description} />
     {noDates && <p className="mt-3 text-[14px] text-muted-foreground">분석할 수 있는 날짜 예: 202401, 2024-01, 2024-01-01</p>}
+    {!STATIC && !WEB_UPLOAD && <QualityPanel id={id} time={badDate?.name ?? date?.name} value={badNumber?.name ?? profile.recommended.value ?? undefined} />}
     <div className="mt-5 flex flex-col gap-3 sm:flex-row"><Button type="button" size="cta" className="flex-1" onClick={onBack}>다른 CSV 넣기</Button><Button type="button" size="cta" variant="soft" className="whitespace-normal" onClick={downloadExample}><Download aria-hidden className="size-4" />연습용 CSV 받기</Button></div>
     <p className="mt-3 text-[14px] leading-relaxed text-muted-foreground">연습용 CSV는 날짜와 판매액이 있는 가상 자료예요. 실제 통계가 아니에요.</p>
   </Panel>
 }
 
-function SelectionForm({ dataset, info, profile, onNext, onBack }: Props & { profile: UploadProfile }) {
+function SelectionForm({ dataset, info, profile, previousSelection, onNext, onBack }: Props & { profile: UploadProfile }) {
   const queryClient = useQueryClient()
+  const active = useRef(true)
+  useEffect(() => { active.current = true; return () => { active.current = false } }, [])
   const old = WEB_UPLOAD ? uploadSelection(dataset.id) : info.selection ?? undefined
   const [draft, setDraft] = useState(() => initialSelection(profile, old))
   const [meanings, setMeanings] = useState<Record<string, ValueMeaning>>(() => old?.value === initialSelection(profile, old).value && old?.additive_confirmed ? { [old.value]: "sum" } : {})
@@ -56,6 +60,7 @@ function SelectionForm({ dataset, info, profile, onNext, onBack }: Props & { pro
   const setMeaning = (value: ValueMeaning) => setMeanings(previous => ({ ...previous, [draft.value]: value }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ field?: string; message: string } | null>(null)
+  const [reuseMissing, setReuseMissing] = useState<string[] | null>(null)
   const timeRef = useRef<HTMLSelectElement>(null)
   const valueRef = useRef<HTMLSelectElement>(null)
   const meaningRef = useRef<HTMLInputElement>(null)
@@ -73,7 +78,7 @@ function SelectionForm({ dataset, info, profile, onNext, onBack }: Props & { pro
     if (!busy && error?.field === "value") valueRef.current?.focus()
   }, [busy, error])
 
-  if (!hasAnalysisPair(profile)) return <UnsupportedSelection profile={profile} onBack={onBack} />
+  if (!hasAnalysisPair(profile)) return <UnsupportedSelection profile={profile} onBack={onBack} id={dataset.id} />
 
   const change = (field: "time" | "value", name: string) => {
     const next = assignSelection(profile, draft, field, name)
@@ -92,16 +97,22 @@ function SelectionForm({ dataset, info, profile, onNext, onBack }: Props & { pro
       const spec: ExecutionSpec = { ...draft, category: draft.category || null, additive_confirmed: valueColumn?.additive === true || meaning === "sum", intent: "overview", filters: [], period_n: 0, horizon: 6, run_forecast: false }
       if (WEB_UPLOAD) await selectUpload(dataset.id, spec)
       else await api.selectDataset(dataset.id, spec)
+      if (!active.current) return
       await queryClient.invalidateQueries({ queryKey: ["understand", dataset.id] })
+      if (!active.current) return
       queryClient.removeQueries({ queryKey: ["analyze", dataset.id] })
-      onNext()
+      onNext(spec)
     } catch (e) {
-      setError({ field: e instanceof UploadRequestError ? e.field : undefined, message: (e as Error).message })
-    } finally { setBusy(false) }
+      if (active.current) setError({ field: e instanceof UploadRequestError ? e.field : undefined, message: (e as Error).message })
+    } finally { if (active.current) setBusy(false) }
   }
 
   return <Panel title="어떤 흐름을 볼까요?" action={<Pill tone="teal">월별 분석</Pill>}>
     <p className="mb-6 text-[16px] leading-relaxed text-muted-foreground">날짜를 먼저 확인하고, 함께 볼 금액이나 수량을 골라 주세요.</p>
+    {!STATIC && !WEB_UPLOAD && previousSelection && <div className="mb-5 space-y-2 rounded-xl bg-secondary p-4"><Button type="button" variant="soft" disabled={busy} onClick={() => {
+      const reused = reusableSelection(previousSelection, profile)
+      setDraft(reused.draft); setMeanings({}); setError(null); setReuseMissing(reused.missing)
+    }}>이전 파일의 기준 가져오기</Button><p className="text-[14px]">날짜, 값, 분류와 단위만 가져와요. 이 파일에서 숫자의 뜻을 다시 확인해 주세요.</p>{reuseMissing && <p role="status" className="text-[14px]">{reuseMissing.length ? `이 파일에서 사용할 수 없는 항목: ${reuseMissing.join(', ')}. 빈 항목을 다시 골라 주세요.` : '기준을 가져왔어요. 아래 항목을 확인한 뒤 직접 분석을 시작해 주세요.'}</p>}</div>}
     <form className="data-form" onSubmit={event => { event.preventDefault(); void submit() }} aria-busy={busy}>
       <div className="space-y-6">
         <FormField id="web-time" label="기준으로 볼 날짜" description={dateColumn?.first && dateColumn.last ? `${period(dateColumn.first)}부터 ${period(dateColumn.last)}까지 월별로 모아 볼 수 있어요.` : "날짜로 읽을 수 있는 항목을 골라 주세요."} error={error?.field === "time" ? error.message : undefined}>
@@ -126,6 +137,7 @@ function SelectionForm({ dataset, info, profile, onNext, onBack }: Props & { pro
       <ActionFeedback tone={error ? "danger" : step.target === "run" ? "positive" : step.target === "back" || meaning === "nonadditive" ? "caution" : "info"} title={busy ? "자료를 확인하는 중이에요" : error ? "분석 조건을 확인해 주세요" : step.title} description={busy ? "확인이 끝나면 월별 흐름을 보여드릴게요." : error ? error.message : step.message} action={error?.field === "time" && profile.recommended.time && draft.time !== profile.recommended.time ? { label: "추천 날짜로 바꾸기", onClick: () => change("time", profile.recommended.time!) } : undefined} />
       <div className="mt-5 flex flex-col gap-3 sm:flex-row-reverse"><Button type="submit" size="cta" className="flex-1 whitespace-normal" disabled={busy}>{busy ? "확인하는 중…" : step.label}</Button>{step.target !== "back" && <Button type="button" variant="soft" size="cta" disabled={busy} onClick={onBack}>다른 CSV 넣기</Button>}</div>
       <p className="mt-3 text-[14px] text-muted-foreground">예측은 월별 흐름을 본 뒤 추가할 수 있어요.</p>
+      {!STATIC && !WEB_UPLOAD && <QualityPanel key={`${draft.time}-${draft.value}`} id={dataset.id} time={draft.time || undefined} value={draft.value || undefined} />}
     </form>
   </Panel>
 }

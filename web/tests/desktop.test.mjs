@@ -51,18 +51,31 @@ test('local forecast queries default off, explicitly opt in, and support forecas
   assert.deepEqual(requested.map(url => url.searchParams.get('run_forecast')), ['false', 'true', 'true', 'false'])
 })
 
+test('local quality and comparison requests preserve exact criteria', async () => {
+  const requested = []
+  const { api } = component('lib/api.ts', { './upload': {} }, { fetch: async url => { requested.push(new URL(url, 'http://localhost')); return new Response('{}') } })
+  await api.quality('a', { time: 'date', value: 'sale_amt', kind: 'masked', offset: 50 })
+  assert.equal(requested[0].pathname, '/api/datasets/a/quality')
+  assert.equal(requested[0].searchParams.get('offset'), '50')
+  const filters = [{ column: 'bjd_nm', values: ['제주시'] }]
+  await api.join('a', 'sale_amt', 'b', 'use_cnt', { left_region: 'bjd_cd', right_region: 'bjd_cd', left_filters: filters })
+  assert.equal(requested[1].searchParams.get('right_value'), 'use_cnt')
+  assert.equal(requested[1].searchParams.get('left_region'), 'bjd_cd')
+  assert.deepEqual(JSON.parse(requested[1].searchParams.get('left_filters')), filters)
+})
+
 test('native analysis offers an explicit forecast while preserving the chosen filters', () => {
   const tags = names => Object.fromEntries(names.map(name => [name, name]))
   const choice = { value: 'sale_amt', category: 'type_nm', intent: 'share', period_n: 6, filters: [{ column: 'type_nm', values: ['A'] }] }
   let next
   const { Analyze } = component('steps/Analyze.tsx', {
-    'react': { useMemo: fn => fn() },
+    'react': { useMemo: fn => fn(), useState: () => [null, () => {}] },
     '@tanstack/react-query': { useQuery: () => ({ data: { dataset: { title: 'synthetic' }, value: { name: 'sale_amt', ko: '매출', unit: '원' }, category: 'type_nm', options: { values: ['sale_amt'], categories: ['type_nm'] }, labels: {}, series: [], cards: [], facts: {}, forecast: null, forecast_refusal: '예측 도구를 선택하지 않았어요.', missing_months: [], filters: choice.filters } }) },
     '@/lib/api': { STATIC: false, WEB_UPLOAD: false, api: {} },
     '@/lib/selection': selection,
     '@/components/form': tags(['ActionFeedback']),
     '@/components/ui/chart': tags(['ChartContainer', 'ChartTooltip', 'ChartTooltipContent']),
-    './WebAskPanel': tags(['WebAskPanel']), './AskPanel': tags(['AskPanel']), './JoinPanel': tags(['JoinPanel']),
+    './CenterJoinPanel': tags(['CenterJoinPanel']), './WebAskPanel': tags(['WebAskPanel']), './AskPanel': tags(['AskPanel']), './JoinPanel': tags(['JoinPanel']),
     'recharts': tags(['Area', 'CartesianGrid', 'ComposedChart', 'Line', 'XAxis', 'YAxis']),
   })
   const tree = Analyze({ dataset: { id: 'local', source: 'upload' }, choice, onChange: value => { next = value } })
@@ -171,7 +184,7 @@ test('the local unsupported form identifies invalid numeric source rows', () => 
     'react': { useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}], useRef: () => ({ current: null }), useEffect() {} },
     '@tanstack/react-query': { useQueryClient: () => cache },
     '@/lib/api': { WEB_UPLOAD: false, api: {} },
-    '@/lib/upload': {}, '@/lib/selection': selection,
+    './QualityPanel': { QualityPanel: 'QualityPanel' }, '@/lib/upload': {}, '@/lib/selection': selection,
     '@/components/form': { ActionFeedback: 'ActionFeedback', FormField: 'FormField' },
   })
   const profile = { time_candidates: ['date'], value_candidates: [], category_candidates: [], date_status: 'ready', recommended: { time: 'date' }, columns: [{ name: 'date', role: 'time', date_status: 'valid' }, { name: 'sale_amt', role: 'measure', additive: true, numeric_status: 'invalid', invalid_numeric_rows: [3] }] }
@@ -180,6 +193,27 @@ test('the local unsupported form identifies invalid numeric source rows', () => 
   const tree = unsupported.type(unsupported.props)
   assert.ok(JSON.stringify(tree).includes('3행'))
   cache.clear()
+})
+
+test('a late selection save cannot restore session criteria after the form is cleared', async () => {
+  let release, next = 0
+  const effects = []
+  const { WebSelection } = component('steps/WebSelection.tsx', {
+    'react': { useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}], useRef: initial => ({ current: initial }), useEffect: effect => { effects.push(effect()) } },
+    '@tanstack/react-query': { useQueryClient: () => ({ invalidateQueries: async () => {}, removeQueries() {} }) },
+    '@/lib/api': { WEB_UPLOAD: false, api: { selectDataset: () => new Promise(resolve => { release = resolve }) } },
+    './QualityPanel': { QualityPanel: 'QualityPanel' }, '@/lib/upload': {}, '@/lib/selection': selection,
+    '@/components/form': { ActionFeedback: 'ActionFeedback', FormField: 'FormField' },
+  })
+  const profile = { time_candidates: ['date'], value_candidates: ['sale_amt'], category_candidates: [], date_status: 'ready', recommended: { time: 'date', value: 'sale_amt' }, columns: [{ name: 'date', role: 'time', date_status: 'valid' }, { name: 'sale_amt', role: 'measure', additive: true, numeric_status: 'valid' }] }
+  const outer = WebSelection({ dataset: { id: 'local' }, info: { columns: [], upload_profile: profile }, onNext: () => { next++ } })
+  const tree = outer.type(outer.props)
+  find(tree, n => n.type === 'form').props.onSubmit({ preventDefault() {} })
+  assert.equal(typeof release, 'function')
+  for (const cleanup of effects) cleanup?.()
+  release({})
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(next, 0)
 })
 
 test('uploading a local CSV invalidates the file list even with infinite stale time', async () => {

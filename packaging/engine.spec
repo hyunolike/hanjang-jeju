@@ -10,6 +10,7 @@ root = Path(SPECPATH).parent
 public = os.environ.get("JEJU_PUBLIC") == "1"
 datas = [] if public else [(str(root / "data/hub"), "data/hub")]
 datas += [
+    (str(root / "pyproject.toml"), "."),
     (str(root / "data/dummy"), "data/dummy"),
     (str(root / "data/reference/center_spec.json"), "data/reference"),
     (str(root / "data/reference/hub_tables.json"), "data/reference"),

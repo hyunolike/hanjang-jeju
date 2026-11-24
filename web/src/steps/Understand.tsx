@@ -2,6 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, CalendarX, Check, Sparkles } from "lucide-react"
 import { api, WEB_UPLOAD, type ColumnInfo, type Dataset } from "@/lib/api"
 import { WebSelection } from "./WebSelection"
+import type { ExecutionSpec } from '@/lib/upload'
+import type { ReusableSelection } from '@/lib/selection'
+import { QualityPanel } from './QualityPanel'
+import { STATIC } from '@/lib/api'
 import { BigTitle, CtaBar, Illust, Panel, Pill } from "@/components/kit"
 import { ActionFeedback } from "@/components/form"
 import { StageIntro, StageLoading } from "@/components/stage"
@@ -17,7 +21,7 @@ const ROLE: Record<ColumnInfo["role"], { label: string; tone: "teal" | "grey" | 
   unknown: { label: "모름", tone: "caution" },
 }
 
-export function Understand({ dataset, onBack, onNext }: { dataset: Dataset; onBack: () => void; onNext: () => void }) {
+export function Understand({ dataset, onBack, onNext, previousSelection }: { dataset: Dataset; onBack: () => void; onNext: (selection?: ExecutionSpec) => void; previousSelection?: ReusableSelection | null }) {
   const q = useQuery({ queryKey: ["understand", dataset.id], queryFn: () => api.understand(dataset.id) })
   if (q.isLoading) return <StageLoading stage="understand" />
   if (q.error || !q.data) return <div className="space-y-5"><BigTitle eyebrow="2단계 기준 확인" title="자료를 읽지 못했어요" /><ActionFeedback tone="danger" title="다시 시작할 수 있어요" description={(q.error as Error)?.message || "자료를 다시 고른 뒤 확인해 주세요."} /><CtaBar><Button size="cta" className="w-full" onClick={onBack}>자료 다시 고르기</Button></CtaBar></div>
@@ -46,7 +50,8 @@ export function Understand({ dataset, onBack, onNext }: { dataset: Dataset; onBa
         }
       />
 
-      {uploaded && <WebSelection dataset={dataset} info={u} onNext={onNext} onBack={onBack} />}
+      {uploaded && <WebSelection dataset={dataset} info={u} previousSelection={previousSelection} onNext={onNext} onBack={onBack} />}
+      {!uploaded && !STATIC && !WEB_UPLOAD && <QualityPanel id={dataset.id} time={u.time_column ?? undefined} value={u.columns.find(c => c.role === 'measure' && c.additive)?.name} />}
 
       <details open={!uploaded} className="space-y-5">
       <summary className={uploaded ? "cursor-pointer rounded-xl px-2 py-3 text-[15px] font-medium text-[var(--grey-700)]" : "hidden"}>자료를 어떻게 읽었나요?</summary>
@@ -116,7 +121,7 @@ export function Understand({ dataset, onBack, onNext }: { dataset: Dataset; onBa
         <Button variant="soft" size="cta" className="flex-1 sm:flex-none" onClick={onBack}>
           다른 자료
         </Button>
-        {!(WEB_UPLOAD && dataset.source === "upload") && <Button size="cta" className="flex-[2]" onClick={onNext} disabled={!u.time_column}>
+        {!(WEB_UPLOAD && dataset.source === "upload") && <Button size="cta" className="flex-[2]" onClick={() => onNext()} disabled={!u.time_column}>
           분석하기
         </Button>}
       </CtaBar>}
