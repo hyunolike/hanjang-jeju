@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import aggregate, answers, dictionary, forecast, ingest, insights, paths, regions, semantics
+from . import aggregate, answers, dictionary, forecast, ingest, insights, paths, processing, regions, semantics
 from .facts import FactStore
 
 ROOT = paths.ROOT
@@ -71,8 +71,8 @@ def find(dataset_id: str) -> Dataset:
     raise KeyError(dataset_id)
 
 
-def understand(ds: Dataset) -> dict:
-    result = read_dataset(ds)
+def understand(ds: Dataset, result: ingest.CleanResult | None = None) -> dict:
+    result = result if result is not None else read_dataset(ds)
     recog = dictionary.recognize(list(result.data.columns))
     spec_columns = {c["name"]: c for c in (recog.table.columns if recog.table else ())}
     columns = []
@@ -121,16 +121,16 @@ def normalize_value(value: str) -> str:
 def apply_filters(data: pd.DataFrame, filters: list[dict] | None) -> pd.DataFrame:
     """filters: [{"column": 열, "values": [실제 값...]}]. 열끼리 AND, 값끼리 OR."""
     for f in filters or []:
-        wanted = {normalize_value(v) for v in f["values"]}
-        data = data[data[f["column"]].map(lambda x: normalize_value(x) in wanted)]
+        wanted = {ingest.normalize_text(str(v)) for v in f["values"]}
+        data = data[data[f["column"]].map(lambda x: pd.notna(x) and ingest.normalize_text(str(x)) in wanted)]
     return data
 
 
-def checked_data(ds: Dataset, time: str, chosen: dict) -> pd.DataFrame:
+def checked_data(ds: Dataset, time: str, chosen: dict, result: ingest.CleanResult | None = None) -> pd.DataFrame:
     """Check the full original rows before filtering or aggregating."""
     if chosen["additive"] is not True:
         raise ValueError(f"‘{chosen['ko']}’은 합계를 낼 수 없어요. 평균·비율·인구는 더하지 않고, 다른 금액이나 수량을 골라 주세요.")
-    result = read_dataset(ds)
+    result = result if result is not None else read_dataset(ds)
     data = result.data.copy()
     rows = result.source_rows or list(range(2, len(data) + 2))
     for row, raw in zip(rows, data[time]):
@@ -153,8 +153,10 @@ def analyze(
     intent: str | None = None,
     period_n: int | None = None,
     run_forecast: bool = True,
+    include_processing: bool = False,
 ) -> dict:
-    info = understand(ds)
+    result = read_dataset(ds)
+    info = understand(ds, result)
     time = info["time_column"]
     measures = [c for c in info["columns"] if c["role"] == "measure"]
     if not time or not measures:
@@ -170,11 +172,11 @@ def analyze(
         if f.get("column") not in categories:
             return {"dataset": info["dataset"], "error": f"'{f.get('column')}' 열로는 거를 수 없어요."}
 
-    dates = read_dataset(ds).data[time].dropna().astype(str)
+    dates = result.data[time].dropna().astype(str)
     if not info["months"] and not dates.empty and dates.str.fullmatch(r"[1-9][0-9]{3}").all():
         return {"dataset": info["dataset"], "error": "월 단위 시간 열이 없어 흐름을 볼 수 없어요. 연도와 월이 함께 있는 자료를 넣어 주세요."}
     try:
-        validated = checked_data(ds, time, chosen)
+        validated = checked_data(ds, time, chosen, result)
     except ValueError as err:
         return {"dataset": info["dataset"], "error": str(err)}
     if not info["months"]:
@@ -202,7 +204,11 @@ def analyze(
         answer = fn(working, "__jeju_month", "__jeju_value", group, store, **kwargs)
     series = insights.total_series(working, "__jeju_month", "__jeju_value")
     fc, refusal = None, "예측 도구를 선택하지 않았어요."
-    if run_forecast:
+    completeness = processing.monthly_quality(result, data, time, chosen['name'])
+    partial = any(x['partial'] and x['valid_rows'] > 0 for x in completeness)
+    if run_forecast and partial:
+        refusal = "가림이나 빈값이 섞인 달은 관측 부분합이에요. 전체 합계를 확인하기 전에는 예측하지 않아요."
+    elif run_forecast:
         try:
             fc = forecast.forecast(series, horizon).to_dict()
             fc_fact = store.add("forecast_mean", fc["mean"][0], unit, f"{insights.ko_month(fc['periods'][0])} 추정 중앙값", period=fc["periods"][0])
@@ -224,45 +230,17 @@ def analyze(
         "missing_months": insights.missing_months(series),
         "filters": filters or [],
         "answer": answer.to_dict() if answer else None,
+        **({'processing': processing.record(result, data, time=time, chosen=chosen, category=category, filters=filters, forecast_requested=run_forecast)} if include_processing else {}),
     }
 
 
-def join_monthly(left: Dataset, left_value: str, right: Dataset, right_value: str) -> dict:
-    """두 자료를 월 합계로 맞춰 결합하고 커버리지를 보고한다."""
-    frames = []
-    for ds, value, internal in ((left, left_value, "left_value"), (right, right_value, "right_value")):
-        info = understand(ds)
-        chosen = next((c for c in info["columns"] if c["name"] == value and c["role"] == "measure"), None)
-        if not info["time_column"] or chosen is None:
-            raise ValueError("결합할 날짜와 값 항목을 다시 골라 주세요.")
-        data = checked_data(ds, info["time_column"], chosen)
-        frame = pd.DataFrame({"base_year_month": data[info["time_column"]].map(aggregate.to_month), internal: data[value]})
-        frames.append(frame.groupby("base_year_month", as_index=False)[internal].sum(min_count=1))
-    merged, report = regions.join_with_report(frames[0], frames[1], ["base_year_month"])
-    store = FactStore()
-    both = merged.dropna(subset=["left_value", "right_value"])
-    refusal = None
-    corr = None
-    if len(both) < 3:
-        refusal = "함께 비교할 월이 부족해 상관계수를 계산하지 못했어요. 3개월 이상이 필요해요."
-    elif both.left_value.nunique() < 2 or both.right_value.nunique() < 2:
-        refusal = "한 자료의 값이 일정해 상관계수를 계산하지 못했어요."
-    else:
-        computed = float(both.left_value.corr(both.right_value))
-        if math.isfinite(computed):
-            corr = round(computed, 3)
-        else:
-            refusal = "자료의 값으로 상관계수를 계산하지 못했어요."
-    fact = store.add("correlation", corr if corr is not None else float("nan"), "", "월별 상관계수", months=len(both))
-    return {
-        "left": _ds_dict(left),
-        "right": _ds_dict(right),
-        "report": report.to_dict(),
-        "rows": merged.astype(object).fillna("").to_dict(orient="records"),
-        "facts": {fact.id: {**fact.to_dict(), "value": corr}},
-        "correlation_refusal": refusal,
-        "note": "상관은 함께 움직이는 정도일 뿐 원인을 뜻하지 않아요.",
-    }
+def join_monthly(left: Dataset, left_value: str, right: Dataset, right_value: str, *,
+                 left_region: str | None = None, right_region: str | None = None,
+                 left_filters: list[dict] | None = None) -> dict:
+    """두 자료의 선택 값과 월/지역 기준을 확인해 비교한다."""
+    from . import comparison
+    return comparison.join(left, right, left_value, right_value,
+                           left_region=left_region, right_region=right_region, left_filters=left_filters)
 
 
 def _ds_dict(ds: Dataset) -> dict:

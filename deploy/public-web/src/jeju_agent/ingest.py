@@ -10,11 +10,14 @@ from __future__ import annotations
 
 import re
 import csv
+import hashlib
 from io import BytesIO, StringIO
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import pandas as pd
+
+from . import aggregate, semantics
 
 ENCODINGS = ("utf-8-sig", "cp949")
 MISSING_TOKENS = {"", "NULL", "null", "NA", "N/A", "nan", "NaN", "None"}
@@ -40,6 +43,8 @@ class CleanResult:
     encoding: str
     columns: dict[str, ColumnReport] = field(default_factory=dict)
     source_rows: list[int] = field(default_factory=list)
+    source_sha256: str | None = None
+    source_bytes: int | None = None
 
     def report(self) -> dict:
         return {
@@ -105,7 +110,11 @@ def clean(frame: pd.DataFrame, encoding: str = "") -> CleanResult:
         data[column] = normalized.where(~(is_missing | is_none | is_masked))
         reports[column] = rep
 
-    text_columns = [c for c in data.columns if not _mostly_numeric(data[c])]
+    roles = {c: semantics.value_semantic(c).role for c in data.columns}
+    text_columns = [c for c in data.columns if roles[c] != "measure" and not _mostly_numeric(data[c])]
+    # 숫자로 쓰인 날짜/지역/분류도 묶음 키다. 다른 달이나 다른 지역의 상세 행은
+    # 이 행이 소계라는 근거가 되지 않는다. 알 수 없는 기간 열도 보수적으로 보존한다.
+    group_columns = [c for c in data.columns if roles[c] in {"time", "region", "category"} or (roles[c] != "measure" and re.search(r'date|time|period|year|기간|시점|날짜|연월|년월|연도', c, re.I) and _looks_like_period(data[c]))]
     subtotal_mask = pd.Series(False, index=data.index)
     for column in text_columns:
         is_token = data[column].isin(SUBTOTAL_TOKENS)
@@ -113,7 +122,7 @@ def clean(frame: pd.DataFrame, encoding: str = "") -> CleanResult:
             continue
         # '소계'가 소계인 것은 같은 묶음(다른 글자 열이 같은 행들)에 세부 행이 함께 있을 때뿐이다.
         # 세부 없이 '소계'만 있는 묶음(예: 활동사업체의 생멸구분)은 그 행이 곧 값이므로 남긴다.
-        keys = [c for c in text_columns if c != column]
+        keys = [c for c in dict.fromkeys([*text_columns, *group_columns]) if c != column]
         if keys:
             has_detail = (~is_token).groupby([data[k].fillna("") for k in keys]).transform("any")
             is_token &= has_detail
@@ -135,6 +144,11 @@ def _mostly_numeric(series: pd.Series) -> bool:
     return pd.to_numeric(values, errors="coerce").notna().mean() > 0.9
 
 
+def _looks_like_period(series: pd.Series) -> bool:
+    values = series.dropna().astype(str)
+    return not values.empty and all(re.fullmatch(r"[12]\d{3}", v) or aggregate.parse_month(v) is not None for v in values)
+
+
 def load(path: str | Path) -> CleanResult:
     return load_bytes(Path(path).read_bytes())
 
@@ -142,14 +156,22 @@ def load(path: str | Path) -> CleanResult:
 def load_bytes(raw: bytes) -> CleanResult:
     frame, encoding = read_bytes(raw)
     result = clean(frame, encoding)
+    result.source_sha256 = hashlib.sha256(raw).hexdigest()
+    result.source_bytes = len(raw)
     reader = csv.reader(StringIO(raw.decode(encoding)), strict=True)
+    physical_lines = StringIO(raw.decode(encoding), newline='').readlines()
     next(reader)
     source_lines = []
     previous = reader.line_num
     for row in reader:
         start = previous + 1
         previous = reader.line_num
-        if row and not (len(row) == 1 and not row[0].strip()):
+        if not blank_record(row, start, reader.line_num, physical_lines):
             source_lines.append(start)
     result.source_rows = [source_lines[row - 2] for row in result.source_rows]
     return result
+
+
+def blank_record(row: list[str], start: int, end: int, physical_lines: list[str]) -> bool:
+    """물리적인 빈 줄만 건너뛰고 따옴표로 감싼 빈 셀은 보존한다."""
+    return not row or not ''.join(physical_lines[start - 1:end]).strip()
