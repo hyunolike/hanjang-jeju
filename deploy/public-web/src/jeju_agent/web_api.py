@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
-from . import cloudflare, pipeline, web_agent, web_input, web_profile
+from . import cloudflare, pipeline, web_agent, web_input, web_profile, web_business
 
 app = FastAPI(title="한 장 제주 공개 분석", docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -96,7 +96,7 @@ async def understand(file: UploadFile = File(), options_text: str = Form("", ali
 @app.post("/api/web/analyze")
 async def analyze(file: UploadFile = File(), mode: str = Form("manual"), options_text: str = Form("{}", alias="options"), question: str = Form(""), execution_spec: str = Form("{}"), input_digest: str = Form(""), confirmed: bool = Form(False)):
     raw = await read_upload(file)
-    if mode == "agent":
+    if mode in {"agent", "business"}:
         if not confirmed or options_text != "{}":
             web_input.reject("계획을 확인한 뒤 실행해 주세요.")
         try:
@@ -104,18 +104,32 @@ async def analyze(file: UploadFile = File(), mode: str = Form("manual"), options
         except ValueError:
             web_input.reject("실행 계획을 읽지 못했어요.")
         spec = web_agent.validate_execution(raw, question, payload, input_digest)
+        expected_origin = 'recipe' if mode == 'business' else 'model'
+        if (spec.business_task and spec.plan_origin != expected_origin) or (mode == 'business' and not spec.business_task):
+            web_input.reject('계획의 실행 방식이 바뀌었어요. 계획을 다시 확인해 주세요.')
     elif mode == "manual":
         spec = options(options_text)
+        if spec.business_task:
+            web_input.reject('업무 분석은 계획을 확인한 뒤 실행해 주세요.')
     else:
         web_input.reject("분석 실행 모드를 확인해 주세요.")
     ds = web_input.dataset(raw, file.filename or "upload.csv", spec)
-    result = await run_in_threadpool(pipeline.analyze, ds, value=spec.value, category=spec.category, intent=spec.intent, filters=[f.model_dump() for f in spec.filters], period_n=spec.period_n, horizon=spec.horizon, run_forecast=spec.run_forecast)
-    result["execution"] = {"mode": mode, "question": question if mode == "agent" else None, "tools": spec.tools, "verified": web_agent.verify_result(result)}
+    if spec.business_task:
+        if web_agent.business_scope_error(question):
+            web_input.reject('지원하는 분기 업무 질문으로 계획을 다시 확인해 주세요.')
+        if spec.business_task == 'category_change' and not spec.category:
+            web_input.reject('분류별 증감을 보려면 분류 열을 골라 주세요.')
+        result = await run_in_threadpool(web_business.analyze, ds, spec)
+    else:
+        if mode == 'agent' and '분기' in question:
+            web_input.reject('분기 질문은 업무 계획으로 다시 확인해 주세요.')
+        result = await run_in_threadpool(pipeline.analyze, ds, value=spec.value, category=spec.category, intent=spec.intent, filters=[f.model_dump() for f in spec.filters], period_n=spec.period_n, horizon=spec.horizon, run_forecast=spec.run_forecast)
+    result["execution"] = {"mode": mode, "question": question if mode in {"agent", "business"} else None, "tools": spec.tools, "verified": web_agent.verify_result(result)}
     return finite(result)
 
 
 @app.post("/api/web/plan")
-async def plan(file: UploadFile = File(), options_text: str = Form(alias="options"), question: str = Form(), edited_spec: str = Form("")):
+async def plan(file: UploadFile = File(), options_text: str = Form(alias="options"), question: str = Form(), edited_spec: str = Form(""), business_task: str = Form("")):
     raw = await read_upload(file)
     spec = options(options_text)
     ds = web_input.dataset(raw, file.filename or "upload.csv", spec)
@@ -123,4 +137,4 @@ async def plan(file: UploadFile = File(), options_text: str = Form(alias="option
         edited = json.loads(edited_spec) if edited_spec else None
     except ValueError:
         web_input.reject("수정한 계획을 읽지 못했어요.")
-    return finite(await run_in_threadpool(web_agent.plan, ds, raw, question, spec.model_dump(), edited))
+    return finite(await run_in_threadpool(web_agent.plan, ds, raw, question, spec.model_dump(), edited, business_task or None))
