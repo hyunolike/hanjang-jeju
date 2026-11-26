@@ -6,6 +6,8 @@
 
 <p align="center"><strong>English</strong> | <a href="README.ko.md">한국어</a> | <a href="README.zh-CN.md">简体中文</a> | <a href="README.ja.md">日本語</a></p>
 
+<p align="center"><a href="https://hanjang-jeju.hyunolike.dev"><img src="assets/web-demo-en.svg" width="344" alt="Open web demo"></a></p>
+
 <p align="center"><a href="https://hanjang-jeju.hyunolike.dev">Try the web demo</a> · <a href="#get-started">Download for desktop</a> · <a href="https://github.com/hyunolike/hanjang-jeju/releases/latest">Latest release</a></p>
 
 <p align="center">
